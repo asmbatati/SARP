@@ -43,7 +43,7 @@ if [ "$HTTP_CODE" -eq 201 ]; then
     echo -e "${GREEN}Repository URL: $HTML_URL${NC}"
 elif [ "$HTTP_CODE" -eq 422 ]; then
     echo -e "${YELLOW}Repository already exists. Continuing...${NC}"
-    CLONE_URL="https://github.com/aniskoubaa/SAFEMRS.git"
+    CLONE_URL="https://github.com/asmbatati/SAFEMRS.git"
 else
     echo -e "${RED}Failed to create repository. HTTP Code: $HTTP_CODE${NC}"
     echo -e "${RED}Response: $BODY${NC}"
@@ -51,17 +51,17 @@ else
 fi
 
 echo -e "\n${GREEN}Next steps:${NC}"
-echo "1. Repository is ready at: https://github.com/aniskoubaa/SAFEMRS"
+echo "1. Repository is ready at: https://github.com/asmbatati/SAFEMRS"
 echo "2. Pushing your code..."
 
 # Update remote and push
 cd "$(dirname "${BASH_SOURCE[0]}")"
-git remote set-url origin "https://${GITHUB_TOKEN}@github.com/aniskoubaa/SAFEMRS.git"
+git remote set-url origin "https://${GITHUB_TOKEN}@github.com/asmbatati/SAFEMRS.git"
 git push -u origin main
 
 if [ $? -eq 0 ]; then
     echo -e "\n${GREEN}✓ Successfully pushed to GitHub!${NC}"
-    echo -e "${GREEN}Visit: https://github.com/aniskoubaa/SAFEMRS${NC}"
+    echo -e "${GREEN}Visit: https://github.com/asmbatati/SAFEMRS${NC}"
 else
     echo -e "\n${RED}Push failed. Please check the error above.${NC}"
     exit 1

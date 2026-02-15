@@ -56,7 +56,7 @@ SAFEMRS IROS Paper/
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/aniskoubaa/SAFEMRS.git
+git clone https://github.com/asmbatati/SAFEMRS.git
 cd SAFEMRS
 ```
 
@@ -70,7 +70,7 @@ Since this repository requires authentication, you have two options:
 2. Generate new token with `repo` scope
 3. Update the remote URL:
    ```bash
-   git remote set-url origin https://YOUR_TOKEN@github.com/aniskoubaa/SAFEMRS.git
+   git remote set-url origin https://YOUR_TOKEN@github.com/asmbatati/SAFEMRS.git
    ```
 
 #### Option 2: Using SSH
@@ -78,7 +78,7 @@ Since this repository requires authentication, you have two options:
 1. Set up SSH keys for GitHub ([GitHub SSH Setup](https://docs.github.com/en/authentication/connecting-to-github-with-ssh))
 2. Update the remote URL:
    ```bash
-   git remote set-url origin git@github.com:aniskoubaa/SAFEMRS.git
+   git remote set-url origin git@github.com:asmbatati/SAFEMRS.git
    ```
 
 ---
@@ -193,7 +193,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📧 Contact
 
 - **Research Supervisor**: Prof. Anis Koubaa
-- **Repository Owner**: Anis Koubaa (aniskoubaa)
+- **Repository Owner**: asmbatati
+- **Collaborator**: Anis Koubaa (aniskoubaa)
 - **Project Affiliation**: ScaleX Research Lab
 
 ---
