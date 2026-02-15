@@ -1,0 +1,759 @@
+--- Page 1 ---
+Citation: Zhao, W.; Li, L.; Zhan, H.;
+Wang, Y.; Fu, Y. Applying Large
+Language Model to a Control System
+for Multi-Robot Task Assignment.
+Drones 2024, 8, 728. https://doi.org/
+10.3390/drones8120728
+Academic Editor: Andrey V. Savkin
+Received: 11 October 2024
+Revised: 8 November 2024
+Accepted: 18 November 2024
+Published: 2 December 2024
+Copyright: © 2024 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).
+drones
+Article
+Applying Large Language Model to a Control System for
+Multi-Robot Task Assignment
+Wen Zhao
+, Liqiao Li *
+, Hanwen Zhan
+, Yingqi Wang
+and Yiqi Fu
+The School of Civil Aviation, Northwestern Polytechnical University, Xi’an 710072, China;
+zhaowen@nwpu.edu.cn (W.Z.); zhanhanwen@mail.nwpu.edu.cn (H.Z.); wangyingqi@mail.nwpu.edu.cn (Y.W.);
+fuyiqi@mail.nwpu.edu.cn (Y.F.)
+* Correspondence: anthony_llq_2@mail.nwpu.edu.cn; Tel.: +86-15883034070
+Abstract: The emergence of large language models (LLMs), such as GPT (Generative Pre-trained
+Transformer), has had a profound impact and brought about significant changes across various
+sectors of human society. Integrating GPT-3.5 into a multi-robot control system, termed MultiBot-
+GPT (Multi-Robot Control System with GPT), represents a notable application. This system utilizes
+layered architecture and modular design to translate natural language commands into executable
+tasks for UAVs (Unmanned Aerial Vehicles) and UGVs (Unmanned Ground Vehicles), enhancing
+capabilities in tasks such as target search and navigation. Comparative experiments with BERT
+(Bidirectional Encoder Representations from Transformers) in the natural language-processing com-
+ponent show that MultiBotGPT with GPT-3.5 achieves superior task success rates (94.4% and 55.0%)
+across 50 experiments, outperforming BERT significantly. In order to test the auxiliary role of the
+MultiBotGPT-controlled robot on a human operator, we invited 30 volunteers to participate in our
+comparative experiments. Three separate experiments were performed, Participant Control (Manual
+Control only), Mix Control (Mix Manual Contr and MultiBotGPT Control), and MultiBotGPT Control
+(MultiBotGPT Control only). The performance of MultiBotGPT is recognized by the human operators
+and it can reduce the mental and physical consumption of the human operators through the scoring
+of the participants’ questionnaires.
+Keywords: large language model; multi-robot; control system; human–robot collaboration
+1. Introduction
+In 2018, OpenAI released its large language model GPT-1 [1], and for the first time,
+neural networks were able to excel at understanding rich linguistic knowledge and ac-
+complishing the task of natural language processing. With further research, OpenAI
+successively released GPT-2 [2], GPT-3 [3], and GPT-4 [4] in 2019, 2020, and 2023, respec-
+tively, of which GPT-3 and GPT-4 have had a more extensive and far-reaching impact,
+with larger parameter sizes of about 0.25 trillion and 1.8 trillion, respectively. They also
+have stronger contextual comprehension, extensive generalizability, and excellent logi-
+cal reasoning. Robotics is also a very promising application scenario for big language
+modeling. Google DeepMind introduced Robotics Transformer 2 (RT-2) [5], an innovative
+vision-linguistic-action (VLA) model that combines vision-linguistic models (VLMs) trained
+on large-scale networked data with robotic data to directly control robots. In addition, large
+models are also widely used in the trajectory planning of robotic arms, robot task allocation,
+and many other aspects. The combination of large models and robots is expected to open
+the era of the development of body-intelligent robots.
+In the last few years, with the rapid development of artificial intelligence related to
+the field of language processing, machines have been able to understand human language
+to a certain extent. Bunk T et al. [6] proposed DIET (Dual Intent and Entity Transformer),
+a model that solves two major problems in dialog understanding: intent classification
+Drones 2024, 8, 728. https://doi.org/10.3390/drones8120728
+https://www.mdpi.com/journal/drones
+
+
+--- Page 2 ---
+Drones 2024, 8, 728
+2 of 16
+and entity recognition. Based on the model, Rasa Technologies GmbH developed the
+Rasa open-source conversational AI framework that can help developers train their own
+chatbots. BoW (Bag of Words) [7] text representation method commonly used in NLP
+(Natural Language Processing), and its core idea is to ignore the order of words and focus
+only on the frequency of occurrence of words in the text. BERT (Bidirectional Encoder
+Representations from Transformers) is a method for pre-training language representations,
+proposed by Devlin J et al. [8] at the Google AI Institute in 2018. The core innovation of
+BERT is that it employs a bi-directional Transformer model to learn deep bi-directional
+representations of the text, which allows BERT to excel in understanding the context of the
+language. BERT achieved the best performance of its time (state-of-the-art) on a number of
+NLP tasks and drove the development of many subsequent NLP models. So far, BERT has
+gained wide application in many aspects such as question and answer system [9], reading
+comprehension [10], text categorization [11], and so on. GPT-3.5 (Generative Pre-trained
+Transformer 3.5) is one of the latest in a series of Natural Language Processing (NLP)
+models developed by OpenAI and released in 2022. GPT-3.5 is an improved version of GPT-
+3, which has been further enhanced in understanding and generating natural language [12].
+GPT-3.5 is expected to have a wide range of applications in the field of natural language
+processing because of its strong performance in the field. Compared to previous language-
+processing models, GPT-3.5 has stronger generalization and reasoning abilities, making it
+well-suited for tasks that require sentence understanding and analysis. As shown by the
+experimental data in Section 3.1, GPT-3.5 significantly outperforms BERT with an average
+success rate of 94.4% compared to BERT’s 55.0%. Therefore, GPT-3.5 is selected as the
+natural language-processing model for this study.
+Following in the footsteps of the GPT family of macro-models, more macro-models
+such as GLM [13], Qwen [14], and Gemma [15], for example, have also been developed.
+The emergence of large models has made seamless communication between robots and
+humans no longer out of reach, and has shown great potential for application in the field
+of robot control. Although the application of large models to the field of robot control
+has received a lot of attention, the number of related studies is still very small, and all
+of them are in the stage of theoretical demonstration and pre-research. Nonetheless,
+there are still some scholars whose work is noteworthy. Huang W et al. [16] worked on
+integrating AI with the industry, and their LLM-based 3D value map of the environment
+was constructed to enable untrained control of robotic arms and correct execution of never-
+before-seen commands. Chalvatzaki G et al. [17] explored how to support scenario-based
+task planning by fine-tuning the GPT-2 model to be able to handle scene graphs and
+applying it to a robot language model. Ahn M et al. [18] proposed an approach called
+SayCan, which enables robots to understand and execute natural language commands by
+combining their skills with a large-scale language model. Zhao C et al. [19] developed the
+ERRA framework, a system that combines large-scale language models and reinforcement
+learning to enable robots to understand natural language commands and perform long-term
+manipulation tasks while demonstrating their robustness and generalization capabilities
+in both simulated and real environments. Tang C et al. [20] proposed GraspGPT, a Task-
+Oriented Grasping (TOG) framework based on Large Language Models, which aims to
+solve the generalization problem of robots when dealing with new concepts. Ding Y
+et al. [21] developed LLM-GROP, which utilizes a large-scale language model to assist
+mobile operators in the task of multi-object rearrangement, and demonstrated a practical
+implementation of LLM-GROP on a real-world mobile operator. This paper applies GPT-3.5
+to a ground–air robot control system, effectively reducing the cognitive load on human
+operators. After testing, the integration of GPT-3.5 into the control system—referred to as
+MultiBotGPT—demonstrates potential advantages in collaborative control of ground–air
+robot swarms across various test parameters, including time consumption, self-evaluation,
+and physical exertion.
+Based on GPT-3.5’s ability to understand natural language and powerful logical
+reasoning, we embedded GPT-3.5 into a traditional control system for an open-UGV. Com-
+
+
+--- Page 3 ---
+Drones 2024, 8, 728
+3 of 16
+municating between the control system and the operator through GPT-3.5, it accurately
+translates natural language commands given by the operator into specific tasks that the
+robot can perform and handles multi-tasking situations. As a result, we have developed a
+new multi-robot control system, called MultiBotGPT, which is based on GPT-3.5 fused with
+a variety of other algorithms to realize the function of understanding natural language
+commands given by operators and controlling single or multiple robots to perform spe-
+cific tasks; for example, the Gmapping algorithm for LiDAR-based mapping, the Theta*
+algorithm for ground robot navigation, and the YOLOv7 algorithm for image recognition
+in drones. MultiBotGPT adopts a layered design, which is mainly divided into “Layer of
+Large Language Model” (LLLM), “Layer of Core Interaction” (LCI), and “Layer of Robot
+Control” (LRC), as shown in Figure 1. LLLM mainly implements the Q and A of the large
+language model and is responsible for asking the large language model according to the
+information provided by the core interaction layer and returning the answers of the large
+language model to the core interaction layer. LRC is the layer that drives the robot to realize
+specific tasks, which includes both the underlying control module of the robot and the
+macroscopic specific task module realized based on the underlying control, and exposes
+the macroscopic task interface to be called by the core interaction layer. The LCI is the
+core layer of the control system, which is also the focus of our development. This layer
+includes functions such as accepting language commands from the operator, organizing the
+question text to be sent to the large language model layer, segmenting and processing the
+replies from the large language model layer, and calling interfaces from the robot control
+layer and writing parameters to drive the robot, etc. We call this layer the “Clue Core”.
+The LCI connects the GPT-3.5, the robot, and the operator, and is the main information
+processing and interaction center, acting as the glue that holds the rest of the control system
+together, while isolating the other modules from each other to increase the independence
+and robustness of each layer. The glue core also ensures that the system has good scalability
+and developability so that in the future, new layers and modules only need to interact
+with the glue core and do not need to develop interaction programs with other modules
+separately. Clue Core also ensures that the system has good scalability and developability,
+so that in the future, new layers and modules only need to interact with the glue core and
+do not need to develop interaction programs with other modules separately.
+Figure 1. Level of the MultiBotGPT.
+
+
+--- Page 4 ---
+Drones 2024, 8, 728
+4 of 16
+2. MultiBotGPT Control System
+2.1. System Architecture
+In this paper, we will demonstrate the use of MultiBotGPT to control a UAV (Un-
+manned Aerial Vehicle) and a UGV (Unmanned Ground Vehicle), simulation control of
+the robots under Gazebo, and comparative experiments for quantitative analysis. When
+MultiBotGPT starts running, it will obtain the operator’s command input through the
+terminal, and the operator can enter the tasks that the system can perform in the termi-
+nal in the form of text, and organize the language in the preferred way (the meaning of
+which is clear enough), which can include multiple tasks and their sequential relationships.
+The control system acquires the commands entered by the operator and executes the corre-
+sponding tasks according to the operator’s semantics. Figure 2 shows a schematic diagram
+of MultiBotGPT performing a task.
+Figure 2. MultiBotGPT performs a task: the operator entered the command “The UAV finds the
+number 3 and then the car moves to the position of the number 6”. The commands are passed
+through the Clue Core to the LLLM to ask GPT-3.5 and obtain a fixed format response (the format
+of the response is described by a predefined document and read by GPT-3.5 in advance), which is
+analyzed and processed by the Clue Core to send the corresponding tasks and parameters to the
+specific robot APIs.
+A Robot-Operating System (ROS) is a set of computer operating system architectures
+designed for robot software development. It is an open-source meta-level operating system
+(post-operating system) that provides services similar to operating systems, including
+hardware abstraction description, low-level driver management, execution of common
+functions, inter-program messaging, program distribution package management, and also
+provides tools and libraries for acquiring, building, writing, and executing multi-machine
+fusion programs. MultiBotGPT was built based on ROS, and we organized multiple nodes
+in MultiBotGPT to finally build the system architecture shown in Figure 3. As noted above,
+the Clue Core forms the central part of the system, with all remaining components uniquely
+connected to and interacting with the Clue Core.
+
+
+--- Page 5 ---
+Drones 2024, 8, 728
+5 of 16
+Figure 3. System architecture of MultiBotGPT.
+There are four main components in the Clue Core:
+1.
+Rules Message Organize: After MultiBotGPT starts, the Clue Core will first set up
+the question and answer rules for GPT-3.5, the program will be based on the stored
+information, and eventually organize to form a completed text to send to GPT-3.5. GPT-
+3.5 understands the text message and the logical relationship therein and memorizes
+it, and in the question and answer process after that, GPT-3.5 will be able to answer
+the question and answer in accordance with the format that is set up in the rules.
+This part of the organization will call on the stored Competency Library information,
+which includes the tasks that the robot can perform in the system, the message formats
+needed for each task, and some examples. The information in the Competency Library
+will also be incorporated into the rule text, allowing GPT-3.5 to understand what the
+control system needs it to do.
+2.
+Obtaining Operator Commands: This module is the interface exposed to the operator
+to obtain commands, and this section generates a terminal input box for the operator
+to enter commands. In addition, this section can also be used with algorithms such as
+voice input to enable the input of voice control commands.
+3.
+Sending Question to LLM and Obtaining Response: This module is responsible for
+sending the commands entered by the operator to the GPT-3.5, obtaining the responses
+returned by the GPT-3.5, and performing the initial processing. Define the operation
+of this step as LLM. After the operator enters the Command, it is processed and the
+initial task text OriMission of the reply is obtained as shown in Equation (1).
+OriMission = LLM(Command).
+(1)
+4.
+Splitting Tasks and Sending in Order: After obtaining the GPT-3.5 response OriMission,
+this section will parse OriMission, which consists primarily of correcting portions of the
+GPT 3.5 response that are not output in the desired format, to minimize control system
+failures due to formatting issues. Define the operation of this step as Preprocessing.
+OriMission becomes ProMission after this step as shown in Equation (2).
+ProMission = Preprocessing(OriMission).
+(2)
+This section then determines whether the GPT-3.5 response includes multiple tasks
+in relation to the order in which they are included, and if only a single task is included,
+the parameter information included in it is parsed directly and sent to the robot for execu-
+tion; if multiple tasks are included, the multiple tasks will be segmented according to the
+
+
+--- Page 6 ---
+Drones 2024, 8, 728
+6 of 16
+set flag information, and then the parameter information will be parsed for each task and
+sent to the robot for execution. Define the operation of this step as TaskSplit. ProMission
+becomes a fixed format task code CodeMission{Mark; Para1, Para2, Para3,... } after this
+step as shown in Equation (3).
+CodeMission = TaskSplit(ProMission).
+(3)
+LLLM mainly consists of the API exposed to the Clue Core for calling and the control
+program for continuous Q and A. GPT-3.5 communicates with the Clue Core mainly using
+text messages. Because the parts of the Clue Core and the LLLM need to conduct almost all
+the text message processing, and in order to achieve higher compatibility and extensibility,
+the programs of these two parts are mainly implemented in the Python language.
+There are four main components in the robotics section:
+1.
+Basic Control: This module defines the underlying basic control of the robot, including
+the basic control of forward, backward, up, down (UAV), etc., and provides an
+interface for the Execution Mission module to call.
+2.
+Execution Mission module accomplishes broader tasks by utilizing the interfaces
+provided in Basic Control. For instance, by coordinating basic robotic movements,
+it enables the Unmanned Ground Vehicle (UGV) to navigate to specific coordinates,
+facilitates the Unmanned Aerial Vehicle (UAV) in reaching designated locations,
+and supports tasks such as automatic cruising for the UAV. This module is able to
+perform tasks that are identical to the Robotics Competency Library stored in the Clue
+Core, and it also includes a program that parses the task codes sent by the Clue Core.
+After obtaining the command from the Clue Core, the parameters of the task will be
+parsed and the task will be executed correctly.
+3.
+Return Execution Result: Regardless of the success or failure of the task execution,
+a message will be returned to the Clue Core informing about the result of the task
+execution to enable further operations.
+4.
+Save Information in Shared Libraries: Based on the topic messaging mechanism of
+ROS, bots are able to obtain information about each other. For example, when the
+UAV searches for a ground sign, it saves the corresponding numbers and coordinates
+of the ground sign, which speeds up the UAV’s search for the same sign and allows it
+to fulfill the function of guiding the UGV to the location.
+The LRC needs to control the robot motion, and this part is implemented in C++17 in
+order to ensure real-time performance, execution efficiency, and feasibility of porting to a
+real robot.
+2.2. MultiBotGPT Key Algorithm Realization
+We will primarily introduce the key algorithms in MultiBotGPT from two aspects: the
+Layer of Core Interaction and the Layer of Robot Control.
+2.2.1. Layer of Core Interaction
+•
+Rules message organize
+As mentioned earlier, once MultiBotGPT is initiated, we first establish the quiz rules
+for GPT-3.5. The rules are fully programmed and consist of two components: those that
+generally do not require modification (e.g., the basic description of the entire system and
+the connectives that enhance the text’s continuity and readability), which are stored in the
+program as text; and those that may need occasional adjustments (e.g., the tasks each robot
+can perform within the system, the parameters required for these tasks, and examples of the
+tasks), which are stored in the program as a list to facilitate easy modification or deletion.
+The final text splice is mainly composed of the following parts, as shown in Figure 4.
+The System Description and Concluding Text are the parts that do not need to be modified.
+The System Description informs what kind of control system GPT-3.5 is working on and the
+basic tasks that need to be accomplished; the Concluding Text is the concluding statement,
+
+
+--- Page 7 ---
+Drones 2024, 8, 728
+7 of 16
+which further strengthens GPT-3.5’s memory and understanding of the previous text.
+The core part of the rule text is the Robotics Competency Library, which consists of three
+sections, Missions, Parameters, and Examples, which can be modified as robot capabilities
+are refined and robots are added or removed, and has a fixed save format.
+Figure 4. Rule text composition.
+In this manner, once the control system is activated, it will splice and combine the
+three sections of text, ultimately creating a semantically and logically coherent document.
+This completed text will then be sent to GPT-3.5, which will understand the specific task it
+needs to perform in the subsequent conversation and generate the desired content.
+•
+Preprocessing of responses from GPT-3.5
+Usually, after setting the rule text for GPT-3.5, GPT-3.5 can output accurately and make
+our control system run normally, but in some cases, GPT-3.5 will output the results with
+inaccurate content, format, or punctuation; for example, the results returned by GPT-3.5
+may include inappropriate tabs and line breaks, and part of the punctuation there are
+Chinese and English formatting errors (since the control system interacts with GPT-3.5
+in English, we will check all punctuation marks and replace Chinese punctuation with
+English punctuation). These results sometimes interfere with the normal operation of the
+control system. In order to avoid that situation, we performed a preliminary processing of
+the results returned by GPT-3.5. This part of the algorithm as shown in Algorithm 1, sends
+the input Command to GPT-3.5 for querying and waits for the reply, if the reply times out,
+resend it to GPT-3.5, and if the reply from GPT-3.5 is normally obtained, remove the extra
+spaces in it, and replace the incorrect Chinese punctuation in it with the corresponding
+English punctuation. After processing, return ProMission for further processing.
+MultiBotGPT can handle multiple tasks at once and execute them in sequence. The op-
+erator can enter multiple commands that need to be executed sequentially, such as “UAV
+takes off looking for the number 6.” After the control system sends commands to the
+GPT-3.5, the GPT-3.5 will output multiple task statements (takeoff and find digital signage)
+according to the set rules. In order to ensure that the tasks can be executed sequentially, we
+set flag bits for task execution in the control system. When GPT-3.5 replies after prepro-
+cessing, the program will split multiple tasks, such as Equation (3), and then start from the
+first task in order to send control instructions to the robot for execution. When the robot
+execution of the task is completed, it will be sent to the Glue Core to send the task flag
+bit, then the Glue Core has completed the current task to obtain the robot, then the next
+
+
+--- Page 8 ---
+Drones 2024, 8, 728
+8 of 16
+instruction is sent, as shown in Figure 5. The input commands are processed by GPT-3.5,
+which handles the natural language commands, automatically sorts and categorizes them,
+and returns a fixed-format list according to predefined rules, as shown in Figure 5. Once
+the control system receives the list returned by GPT-3.5, it maps each task in the list to the
+specific API of the robot in sequence.
+Algorithm 1 Preprocessing of Responses from GPT-3.5
+Input: Original command text(Command)
+Output: Pre-processed mission text(ProMission)
+1: function INQUIRIESANDPREPROCESSING(Command)
+2:
+time ←0 //Initialize a timer, called ‘time’
+3:
+timeout ←15 //Initialize a timeout threshold, called ‘timeout’, default 15s
+4:
+Command to GPT-3.5
+5:
+while time < timeout do
+6:
+if response is received then
+7:
+OriMission ←response
+8:
+break from line 5
+9:
+else
+10:
+wait for response
+11:
+time increase
+12:
+end if
+13:
+end while
+14:
+if time > timeout then
+15:
+goto line 2
+16:
+else
+17:
+// Check for spaces and remove them
+18:
+if ‘ ’(space) is in OriMission then
+19:
+remove all ‘ ’(space) from OriMission
+20:
+end if
+21:
+Replace all Chinese punctuation marks in OriMission with their English coun-
+terparts.
+22:
+ProMission ←OriMission
+23:
+end if
+24:
+return ProMission
+25: end function
+Figure 5. Sequential execution of multiple tasks with example.
+
+
+--- Page 9 ---
+Drones 2024, 8, 728
+9 of 16
+2.2.2. Layer of Robot Control
+The current control system includes two robots, a UGV (a wheeled cart that can move
+autonomously) and a UAV. The UGV is controlled by Gazebo 4-wheel differential control,
+and its underlying control is realized by the program we wrote through the ROS topic; the
+UAV is controlled by PX4 flight control, and its underlying control is provided by PX4.
+In the robot control system, in addition to the control algorithms we have written, we have
+also integrated some excellent open-source algorithms into our control system and used
+them to improve the robot’s ability to perform tasks, as shown in Figure 6.
+1.
+Gmapping: Gmapping is a real-time, robust SLAM algorithm known for its simplicity
+of implementation, flexibility, and adaptability to dynamic environments. We used
+the Gmapping algorithm in conjunction with a UGV-mounted LiDAR to perform base
+mapping of the simulation environment and generate grid map that can be used for
+path planning.
+2.
+Theta* path planning: The Theta* algorithm is an improved path-planning algorithm
+that adds smoothing and flexibility to the A* algorithm by allowing the path to bend at
+any angle, thus generating more natural and intuitive paths. In our previous research,
+the Artificial Potential Field (APF) method was introduced into the Theta* algorithm
+to form the Theta*-APF algorithm [22].The Theta*-APF algorithm exhibits superior
+computational efficiency and path security. We introduce the Theta* algorithm in the
+control system, together with the grid map generated by the GMapping algorithm,
+to realize the path planning capability of the UGV.
+3.
+YOLOv7 image recognition: YOLOv7 is one of the newest target-detection algorithms
+in the YOLO series and stands out for its excellent real-time performance and high-
+precision detection capabilities. We introduce the YOLOv7 algorithm into the control
+system to realize the UAV’s recognition of ground targets (digital signage on the
+ground). During the UAV’s flight, the control system will drive the YOLOv7 algorithm
+in a separate thread to perform image recognition and share the recognition results in
+real time to the ROS for robot invocation.
+Figure 6. Algorithm fusion in the layer of robot control.
+
+
+--- Page 10 ---
+Drones 2024, 8, 728
+10 of 16
+•
+UGV
+The parts that control the movement of the UGV are mainly Basic Control and Exe-
+cution Mission. Among them, in Basic Control, we set up a basic forward and steering
+program for the UGV, which can control the UGV to move linearly at a certain speed or
+steer at a certain angular speed according to the incoming parameters, and the APIs of the
+underlying control is open to be called by Execution Mission. Execution Mission achieves
+its functionality by calling the APIs provided by the Basic Control module and working
+with the shared information in the system. In the current control system, the UGV can
+accomplish three tasks, namely, “The UGV goes to a certain coordinate (goPosition)”, “The
+UGV arrives under the UAV (goToUacLoc)”, and “The UGV arrives at a digital signage
+landmark (goToNum)”, as shown in Figure 7. During the execution of each task, Multi-
+BotGPT converts commands into task codes and sends them to the UGV to accomplish
+specific tasks.
+•
+UAV
+The Basic Control of the UAV is provided by the PX4 flight control firmware, so we
+mainly refined the Execution Mission section. The Execution Mission realizes the three
+tasks of “UAV takeoff (takeoff)”, “UAV goes to a certain coordinate (goToPoint)”, and “UAV
+looking for a certain digital landmark (searchNum)” by calling the basic flight capability
+provided by PX4 and working with the algorithms and data in the control system, as shown
+in Figure 7.
+Figure 7. UAV and UGV map commands to functions.
+3. Experiments and Results Presentation
+3.1. Simulation Experiment
+As depicted in Figure 8, the experiments were conducted based on ROS/Gazebo
+simulation environment. In Figure 8a, the simulation scene, we built a square simulation
+scene and placed some obstacles in the scene floor, which can block the passage of the
+UGV. Moreover, a total of nine digital stickers from 1–9 on the ground of the scene for
+UAV recognition were built, which have randomized positions and orientations. Figure 8b
+demonstrates the UAV model we used. We used the iris UAV model provided in the PX4
+flight control program and added a camera on the bottom of the UAV that shoots directly
+downward with an image resolution of 720 p and a refresh rate of 30 fps. Figure 8c illustrates
+
+
+--- Page 11 ---
+Drones 2024, 8, 728
+11 of 16
+a simple, autonomously movable UGV that we built. The UGV currently has basic mobility
+and sensor detection capabilities. It can be controlled by four-wheel differential control and
+has a flat top for subsequent installation of other components. The red part in Figure 8c is
+a LIDAR, and the green part is a front-view camera, which can provide images at 720 p
+resolution with a 30 fps refresh rate.
+Figure 8. Simulation scenarios and robot models: (a) simulation scenarios, (b) UAV, (c) UGV.
+We will conduct experiments and performance evaluation of MultiBotGPT based on
+the above simulation environment and simulation software. By outputting commands,
+the MultiBotGPT is expected to accurately understand and perform the appropriate tasks.
+Figure 9 shows the flowchart of MultiBotGPT controlling UAV and UGV to perform tasks
+based on the input natural language command. Process A shows the process of MultiBot-
+GPT executing a “UAV looking for a certain digital landmark” mission. After inputting
+“Drones look for where the number 6 is?” from the terminal, Figure 9A(a–e) shows the
+whole process of UAV searching for a certain digital landmark from its initial position until
+it reaches the number 6, and the rightmost picture shows the recognition schematic of the
+YOLO algorithm in this process. Process B shows the process of MultiBotGPT executing a
+mission “The UGV arrives under the UAV”, and after MultiBotGPT receives the command,
+it will carry out path planning based on the Theta* algorithm and control the UGV to
+move forward along the route, as shown in subfigure (b); the path planned by the Theta*
+algorithm automatically avoids the obstacles in the scene, and in subfigure (c–e), we can see
+that the robot has bypassed the obstacles in the scene. Process C shows how MultiBotGPT
+performs the task “The UGV arrives at a digital signage landmark”. Similar to the process
+in Process B, MultiBotGPT receives the command, obtains the coordinates of the number
+6 from the system-shared information (the coordinates were saved in the task shown in
+Process A), and then performs the path planning and guides the UGV to arrive at the
+target location.
+In MultiBotGPT, the understanding of natural language is mainly conducted by GPT-
+3.5, and we also replaced the part of GPT-3.5 that includes natural language processing
+with the BERT (Generalized Pre-training Model) semantic similarity computation algo-
+rithm, which is used for comparing the system’s accuracy in executing natural language
+commands with the support of different natural language-processing algorithms. We tested
+six tasks that can be executed by system UAV and UGV individually, and experimented
+with each task using 50 command statements, and finally took whether the control system
+can execute the commands correctly as a sign of success or not, and output the success
+rate of each task under different natural language-processing algorithms for comparison,
+and the final results of the experiments are shown in Figure 10.
+
+
+--- Page 12 ---
+Drones 2024, 8, 728
+12 of 16
+Figure 9. MultiBotGPT task execution results: (A) mission execution flow of a UAV searching for
+digital landmarks (searching for the number 6 as an example), (B) execution flow of a UGV reaching
+a task below a UAV, (C) task execution flow of a UGV reaching a numerical landmark (take reaching
+number 6 as an example).
+Figure 10. Success rates of tasks performed in MultiBotGPT and BERT as natural language-processing
+algorithms, respectively. Orange: MultiBotGPT, green: MultiBotBERT.
+As can be seen in Figure 10, the task success rate of MultiBotGPT for natural language
+command processing (average: 94.4%) is much higher than MultiBotBert (average: 55.0%),
+and MultiBotGPT’s ability to comprehend and process commands is higher than that
+of using BERT’s algorithm in all tasks tested. Therefore, MultiBotGPT applied to robot
+control shows the ability to surpass the BERT’s algorithm applied to robot control, which
+undoubtedly brings greater application potential.
+
+
+--- Page 13 ---
+Drones 2024, 8, 728
+13 of 16
+3.2. Comparison Experiment Between MultiBotGPT and Human Operation
+3.2.1. Experimental Design
+We designed a comparison experiment to test the effect of MultiBotGPT on the con-
+trol of a robotic system compared to a human operator and we invited 30 volunteers to
+participate in the comparison experiment between MultiBotGPT and human operation.
+In the experiment, we built a simulation console through which human volunteers can
+manipulate the UAV and UGV in the simulation scenario to move, and the console is shown
+in Figure 11. In the experiment, the execution task was fixed as “UAV searching for a digital
+landmark and guiding the ground UGV to reach the location”, in which the experiment
+was divided into three scenarios. The first scenario, called Participant Control, simulates a
+traditional fully human-controlled robotic system, where the participant is in full control of
+the UAV and the UGV to perform the task: the participant needs to first control the UAV
+to search for the target digit before controlling the UGV to reach the location. The second
+scenario, called Mix Control, simulates a situation where MultiBotGPT assists humans in
+robotic system control, with MultiBotGPT controlling the UAV and the participant control-
+ling the UGV. At the beginning of the experiment, the participant informs MultiBotGPT via
+a terminal input which number needs to be searched for, MultiBotGPT controls the UAV to
+perform the search and displays the results of the search in the terminal, the participant
+controls the UGV to arrive at the location based on the results of the search (the coordinates),
+and the terminal inputs for one example session are shown in Table 1. The third scenario,
+called MultiBotGPT Control, simulates the case where the robot system is fully controlled
+by MultiBotGPT, which controls the UAV and the UGV (as in the previous simulation
+experiments), the operator only needs to give commands through the terminal inputs,
+and MultiBotGPT controls the UAV and in turn, the UGV to perform the tasks of “UAV
+looking for a target” and “UGV to UAV below”.
+Figure 11. Using the console to control UAV and UGV in the simulation scenario.
+Table 1. Output of GPT-3.5 interactions with users.
+Role
+Output
+Mission
+UAV searches for number 1, then UGV reaches below UAV.
+Human Operator
+UAV looking for where number 5 is.
+MultiBotGPT
+Obtained the task, executing.
+MultiBotGPT
+Searching for target with coordinates (−4.92,−6.84).
+To ensure the fairness of the experiment, we did not inform participants about the
+simulation scenarios prior to the experiment, ensuring that participants did not see the
+simulation scenarios until after the experiment started. Thirty participants were divided
+into three groups of 10 each for each of the three scenarios. In different experiments, digital
+landmarks to be searched were randomly assigned. At the end of each test, participants
+will rate the Score of Self-Evaluation Performance1 and Score of Mental and Physical
+Consumption2 in Table 2 on a scale from 0 to 10. We will also record the completion
+time for each test. A sample data record is shown in Table 2. The Mental and Physical
+Consumption measures the physical and mental energy consumed by the participants to
+
+
+--- Page 14 ---
+Drones 2024, 8, 728
+14 of 16
+participate in the experiment. In addition, we also counted the task execution time in each
+experiment to measure the efficiency of task execution.
+Table 2. Classifications that participants need to score.
+Classifications
+Participant Contro
+Mix Control
+MultiBotGPT Control
+Time consumption
+23.8 s
+29.6 s
+18.2 s
+Score of Self-Evaluation Performance1
+6.3
+7.9
+8.7
+Score of Mental and Physical Consumption2
+7.3
+4.8
+1.5
+3.2.2. Presentation and Analysis of Experimental Results
+We conducted the experiment according to the experimental plan described above.
+The experimental procedure is as follows: We divided the recruited volunteers into three
+groups to carry out the “Participant Control”, “Mix Control”, and “MultiBotGPT Control”
+experiments. In each round, the three groups performed the same system-randomized
+tasks. We recorded the execution time for each group during each round and, after each
+experiment, asked each group to rate their experience based on Table 2. A total of 20 rounds
+was conducted and data comparisons were made by calculating the average values. The re-
+sults of the experiment are shown in Figure 12. Figure 12a shows the average of the time
+taken to complete the task in three different situations. It is clear from the results that
+the MultiBotGPT Control case took the shortest time to complete the task, which may be
+due to the fact that the MultiBotGPT is able to make quicker judgments about the task
+and is able to control the robot quickly and accurately. The Mix Control situation took
+the longest time to complete the task, and we hypothesize that this may be because the
+human operator took longer to understand exactly where the coordinates of the target
+point displayed by MultiBotGPT were in the scene. Figure 12b shows the average of partic-
+ipants’ self-evaluation performance scores for performing the task in the three situations,
+with MultiBotGPT Control having the highest average score. Figure 12c shows the average
+scores of the participants’ own mental and physical exertion involved in performing the
+task in the three scenarios. The Participant Control situation consumed the most energy
+from the participant (because it required the participant to have complete control over the
+entire process). In contrast, the MultiBotGPT Control situation, in which the participant
+was only required to issue natural language commands, consumed the least amount of the
+participant’s energy.
+Figure 12. Experiment results: (a) mean time consumption in three conditions, (b) mean self-
+evaluation performance scores in three conditions, (c) mean mental and physical consumption scores
+in three conditions.
+
+
+--- Page 15 ---
+Drones 2024, 8, 728
+15 of 16
+From the above results, it can be concluded that the MultiBotGPT fully controlled
+robotic system achieved the best results in the experiments in which volunteers were
+involved, whereas in the case of the MultiBotGPT collaborating with the participants
+(Mix Control), the task execution corresponded to a decrease in the operator’s energy
+expenditure but an increase in the total elapsed time of the task execution, and therefore
+it might be possible to consider using this model in order to minimize the burden on the
+operator during the execution of the time-insensitive tasks. Overall, however, MultiBotGPT
+demonstrated very good control of the robotic system in the comparison experiments with
+humans, and its ability to control the robotic system to perform tasks was rated relatively
+well by the experimental participants.
+4. Conclusions and Future Work
+In this paper, we present MultiBotGPT, a multi-robot control algorithm based on
+GPT-3.5, enabling robots to execute tasks via natural language commands. Simulation
+experiments show MultiBotGPT’s effectiveness in task execution, data sharing, and integra-
+tion with YOLO for image recognition and Theta*-APF for path planning. Using GPT-3.5 for
+natural language processing, MultiBotGPT achieved a 94.4% command execution accuracy,
+significantly outperforming the BERT model’s 55.0%. In a comparative study involving
+30 volunteers, MultiBotGPT demonstrated faster and more accurate control than human
+operators, with lower mental and physical strain on participants.
+Author Contributions: Methodology, W.Z. and L.L.; software, L.L.; validation, H.Z.; formal analysis,
+Y.W.; investigation, H.Z.; resources, Y.F.; data curation, Y.F.; writing—original draft, Y.W.; funding
+acquisition, W.Z. All authors have read and agreed to the published version of the manuscript.
+Funding: This research was funded in part by the Open Project of Fujian Key Laboratory of Spatial
+Information Perception and Intelligent Processing (Yango University, Grant No.FKLSIPIP1026), in
+part by the Fund of Robot Technology Used for Special Environment Key Laboratory of Sichuan
+Province (Grant No.23kftk01), in part by the National Natural Science Foundation of China (Grant
+No.62303379), in part by the Natural Science Foundation of Shaanxi Province, China (Grant No.2023-
+C-QN-0665), in part by the Foundation of Yun-nan Key Laboratory of Unmanned Autonomous
+Systems, Grant No.202408ZD01, and in part by the Fundamental Research Funds for the entral
+Universities (Grant No.G2022WD01017).
+Data Availability Statement: The original contributions presented in the study are included in the
+article, further inquiries can be directed to the corresponding author.
+Conflicts of Interest: The authors declare no conflicts of interest.
+References
+1.
+Radford, A.; Narasimhan, K.; Salimans, T.; Sutskever, I. Improving Language Understanding by Generative Pre-Training. 2018.
+Available online: https://hayate-lab.com/wp-content/uploads/2023/05/43372bfa750340059ad87ac8e538c53b.pdf (accessed on
+10 October 2024).
+2.
+Radford, A.; Wu, J.; Child, R.; Luan, D.; Amodei, D.; Sutskever, I. Language models are unsupervised multitask learners. OpenAI
+Blog 2019, 1, 9.
+3.
+Mann, B.; Ryder, N.; Subbiah, M.; Kaplan, J.; Dhariwal, P.; Neelakantan, A.; Shyam, P.; Sastry, G.; Askell, A.; Agarwal, S.; et al.
+Language models are few-shot learners. arXiv 2020, arXiv:2005.14165.
+4.
+Achiam, J.; Adler, S.; Agarwal, S.; Ahmad, L.; Akkaya, I.; Aleman, F.L.; Almeida, D.; Altenschmidt, J.; Altman, S.; Anadkat, S.;
+et al. Gpt-4 technical report. arXiv 2023, arXiv:2303.08774.
+5.
+Brohan, A.; Brown, N.; Carbajal, J.; Chebotar, Y.; Chen, X.; Choromanski, K.; Ding, T.; Driess, D.; Dubey, A.; Finn, C.; et al. Rt-2:
+Vision-language-action models transfer web knowledge to robotic control. arXiv 2023, arXiv:2307.15818.
+6.
+Bunk, T.; Varshneya, D.; Vlasov, V.; Nichol, A. Diet: Lightweight language understanding for dialogue systems. arXiv 2020,
+arXiv:2004.09936.
+7.
+Zhang, Y.; Jin, R.; Zhou, Z.H. Understanding bag-of-words model: A statistical framework. Int. J. Mach. Learn. Cybern. 2010,
+1, 43–52. [CrossRef]
+8.
+Devlin, J.; Chang, M.W.; Lee, K.; Toutanova, K. Bert: Pre-training of deep bidirectional transformers for language understanding.
+arXiv 2018, arXiv:1810.04805.
+
+
+--- Page 16 ---
+Drones 2024, 8, 728
+16 of 16
+9.
+Alzubi, J.A.; Jain, R.; Singh, A.; Parwekar, P.; Gupta, M. COBERT: COVID-19 question answering system using BERT. Arab. J. Sci.
+Eng. 2023, 48, 11003–11013. [CrossRef] [PubMed]
+10.
+Xu, H.; Liu, B.; Shu, L.; Yu, P.S. BERT post-training for review reading comprehension and aspect-based sentiment analysis. arXiv
+2019, arXiv:1904.02232.
+11.
+Alghanmi, I.; Anke, L.E.; Schockaert, S. Combining BERT with static word embeddings for categorizing social media.
+In
+Proceedings of the Sixth Workshop on Noisy User-Generated Text (W-NUT 2020), Online, 19 November 2020; pp. 28–33.
+12.
+Ye, J.; Chen, X.; Xu, N.; Zu, C.; Shao, Z.; Liu, S.; Cui, Y.; Zhou, Z.; Gong, C.; Shen, Y.; et al. A comprehensive capability analysis of
+gpt-3 and gpt-3.5 series models. arXiv 2023, arXiv:2303.10420.
+13.
+Du, Z.; Qian, Y.; Liu, X.; Ding, M.; Qiu, J.; Yang, Z.; Tang, J. Glm: General language model pretraining with autoregressive blank
+infilling. arXiv 2021, arXiv:2103.10360.
+14.
+Bai, J.; Bai, S.; Chu, Y.; Cui, Z.; Dang, K.; Deng, X.; Fan, Y.; Ge, W.; Han, Y.; Huang, F.; et al. Qwen technical report. arXiv 2023,
+arXiv:2309.16609.
+15.
+Team, G.; Mesnard, T.; Hardin, C.; Dadashi, R.; Bhupatiraju, S.; Pathak, S.; Sifre, L.; Rivière, M.; Kale, M.S.; Love, J.; et al. Gemma:
+Open models based on gemini research and technology. arXiv 2024, arXiv:2403.08295.
+16.
+Huang, W.; Wang, C.; Zhang, R.; Li, Y.; Wu, J.; Fei-Fei, L. Voxposer: Composable 3d value maps for robotic manipulation with
+language models. arXiv 2023, arXiv:2307.05973.
+17.
+Chalvatzaki, G.; Younes, A.; Nandha, D.; Le, A.T.; Ribeiro, L.F.; Gurevych, I. Learning to reason over scene graphs: A case study
+of finetuning GPT-2 into a robot language model for grounded task planning. Front. Robot. AI 2023, 10, 1221739. [CrossRef]
+[PubMed]
+18.
+Ahn, M.; Brohan, A.; Brown, N.; Chebotar, Y.; Cortes, O.; David, B.; Finn, C.; Fu, C.; Gopalakrishnan, K.; Hausman, K.; et al. Do
+as i can, not as i say: Grounding language in robotic affordances. arXiv 2022, arXiv:2204.01691.
+19.
+Zhao, C.; Yuan, S.; Jiang, C.; Cai, J.; Yu, H.; Wang, M.Y.; Chen, Q. Erra: An embodied representation and reasoning architecture
+for long-horizon language-conditioned manipulation tasks. IEEE Robot. Autom. Lett. 2023, 8, 3230–3237. [CrossRef]
+20.
+Tang, C.; Huang, D.; Ge, W.; Liu, W.; Zhang, H. Graspgpt: Leveraging semantic knowledge from a large language model for
+task-oriented grasping. IEEE Robot. Autom. Lett. 2023, 8, 7551–7558. [CrossRef]
+21.
+Ding, Y.; Zhang, X.; Paxton, C.; Zhang, S. Task and motion planning with large language models for object rearrangement. In
+Proceedings of the 2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Detroit, MI, USA, 1–5
+October 2023; IEEE: Piscataway, NJ, USA, 2023; pp. 2086–2092.
+22.
+Zhao, W.; Li, L.; Wang, Y.; Zhan, H.; Fu, Y.; Song, Y. Research on A Global Path-Planning Algorithm for Unmanned Arial Vehicle
+Swarm in Three-Dimensional Space Based on Theta*–Artificial Potential Field Method. Drones 2024, 8, 125. [CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.

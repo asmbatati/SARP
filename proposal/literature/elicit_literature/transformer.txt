@@ -1,0 +1,870 @@
+How can a transformer-based mediation layer incorporate formal verification methods to guarantee that natural language instructions do not violate the robot's physical safety boundaries?
+Transformer-based mediation layers can incorporate formal verification methods by translating natural language instructions into temporal logic specifications (such as Linear Temporal Logic or Signal Temporal Logic) through chain-of-thought reasoning and iterative refinement, then verifying these specifications against safety constraints using model checking, Control Barrier Functions, or reachability analysis before execution—an approach that reduces unsafe plan execution by up to 90% in controlled settings, though complete formal guarantees for arbitrary instructions in open-ended real-world environments remain beyond current capabilities due to computational scalability limitations and the simulation-to-reality gap.
+Abstract
+This systematic review of 80 sources reveals that transformer-based mediation layers can incorporate formal verification methods through three primary architectural patterns: pipeline architectures where transformer outputs undergo separate verification stages, integrated systems embedding verification within transformer inference, and mediation layer approaches generating intermediate formal specifications for downstream planners. Linear Temporal Logic (LTL) represents the most widely adopted verification method, complemented by Signal Temporal Logic for continuous dynamics, Control Barrier Functions for real-time guarantees, and conformal prediction for uncertainty quantification. Translation from natural language to formal specifications employs chain-of-thought reasoning, equivalence voting achieving up to 98% accuracy, and iterative refinement with formal feedback improving specification compliance from 60% to over 90%. These approaches yield substantial safety improvements: RoboGuard reduces unsafe plan execution from 92% to below 2.5%, SAFER achieves 77.5% reduction in safety violations, and SafePlan demonstrates 90.5% reduction in harmful task prompt acceptance.
+
+However, the evidence reveals fundamental trade-offs limiting current guarantees. Formal verification tools scale only to networks with hundreds of neurons while modern transformers contain millions of parameters, necessitating approximation strategies such as relaxation-based verification or probabilistic bounds. Real-world deployment consistently shows degraded performance compared to simulation due to imperfect perception, and current approaches cannot adequately capture time-bounded behaviors. The synthesis indicates that transformer-based mediation layers can effectively guarantee physical safety when safety requirements are expressible in tractable temporal logics, computational resources permit real-time verification, environmental uncertainty is bounded, and human oversight remains available for edge cases. Complete formal guarantees for arbitrary natural language instructions in open-ended environments remain beyond current capabilities.
+
+We analyzed 80 sources from an initial pool of 489, using 8 screening criteria. Each paper was reviewed for 8 key aspects that mattered most to the research question. More on methods
+Characteristics of Included Studies
+The reviewed literature encompasses 80 sources investigating the integration of transformer-based systems with formal verification methods for robotic safety. The studies span multiple domains including autonomous navigation, robotic manipulation, multi-robot coordination, and autonomous driving.
+
+
+
+
+
+Ahmad Hafez et al., 2025
+
+Yes
+
+LLM-controlled robot safety via reachability analysis
+
+Pipeline with safety layer
+
+Zachary Ravichandran et al., 2025
+
+Yes
+
+Safety guardrails for LLM-enabled robots
+
+Two-stage guardrail architecture
+
+Yunhao Yang et al., 2024
+
+Yes
+
+Joint verification and refinement of LMs
+
+Automaton-based verification pipeline
+
+S. Zhan et al., 2025
+
+Yes (abstract only)
+
+Multi-level formal safety evaluation
+
+Multi-level verification pipeline
+
+Ziyi Yang et al., 2023
+
+Yes
+
+Safety constraint enforcement via LTL
+
+Integrated system with safety chip
+
+Abdulrahman Althobaiti et al., 2024
+
+Yes
+
+LLM and knowledge graph safety layer
+
+Pipeline with mediation layer
+
+Leonardo Santos et al., 2024
+
+Yes
+
+Online safety representation updates
+
+Integrated VLM-based system
+
+Ike Obi et al., 2025
+
+Yes
+
+Multi-component safety framework
+
+Pipeline with COT reasoners
+
+Ziming Wang et al., 2024
+
+Yes (abstract only)
+
+Cross-layer sequence supervision
+
+Cross-layer safety supervisor
+
+Kumar Manas et al., 2023
+
+Yes (abstract only)
+
+NL rule formalization for intelligent vehicles
+
+Not mentioned
+
+The studies demonstrate considerable diversity in architectural approaches, with pipeline architectures being most common (35 studies), followed by integrated systems (22 studies), and hybrid approaches combining multiple paradigms (15 studies). Eight studies did not provide sufficient architectural detail.
+
+Architecture Designs for Integrating Transformers with Formal Verification
+Pipeline Architectures
+The predominant architectural pattern involves sequential processing where transformer outputs are verified before execution. RoboGuard employs a two-stage guardrail architecture where a root-of-trust LLM generates safety specifications using chain-of-thought reasoning, which are then verified through temporal logic control synthesis. Similarly, the framework by Ahmad Hafez et al. connects an LLM generating plans to a safety layer that verifies and adjusts those plans using data-driven reachability analysis.
+
+Several studies implement multi-level verification pipelines. Sentinel uses a verification pipeline operating at semantic, plan, and trajectory levels, where natural language safety requirements are first formalized into temporal logic formulas, then action plans are verified against these formulas, and finally execution trajectories undergo detailed specification checking. The cross-layer sequence supervision mechanism proposed by Ziming Wang et al. employs a safety supervisor that provides closed-loop correction at the task planning layer while introducing virtual obstacles for motion planning.
+
+Integrated Systems
+Several approaches tightly couple transformer components with verification mechanisms. The “Safety Chip” architecture implements an integrated system where a queryable safety constraint module based on Linear Temporal Logic connects a language understanding system with formal verification methods, enabling NL to LTL translation, safety violation reasoning, and action pruning within a unified framework. Pro2Guard uses a four-stage pipeline involving trace collection, abstraction, Discrete-Time Markov Chain learning, and runtime verification, with probabilistic model checking for real-time safety enforcement.
+
+The SELP framework demonstrates an integrated approach combining equivalence voting, constrained decoding, and domain-specific fine-tuning, where LTL specifications serve as intermediate representations that enable constrained decoding to generate safe plans. PASTEL integrates Signal Temporal Logic specifications directly with autoregressive transformer models using cross attention mechanisms to ensure predictions adhere to formal specifications.
+
+Mediation Layer Approaches
+A distinct category of architectures employs explicit mediation layers between language models and robot control systems. VernaCopter uses a planning assistant that translates natural language commands into STL specifications, with syntax checking (SynCheQ) and semantic alignment checking (SemCheQ) components providing verification. The SAFER framework employs a Safety Agent operating alongside the primary task planner, providing safety feedback while Control Barrier Functions ensure safety guarantees.
+
+OWL-TAMP deploys VLMs within TAMP systems by having them generate discrete and continuous language-parameterized constraints that augment traditional manipulation constraints. The Code Agent and Checker Agent architecture uses a feedback loop where the Code Agent interprets natural language descriptions while the Checker Agent verifies generated code against original specifications.
+
+Formal Verification Methods Employed
+Temporal Logic Specifications
+Linear Temporal Logic (LTL) represents the most widely adopted formal verification approach, employed in 28 studies. The method enables precise specification of temporal properties including sequencing, liveness, and safety invariants. LTL formulas are typically converted to Büchi automata for verification, enabling formal model checking against safety specifications.
+
+Signal Temporal Logic (STL) provides additional capabilities for specifying temporal constraints with real-valued time bounds, making it suitable for continuous robot dynamics. The VernaCopter system demonstrates STL’s utility in providing rigorous task descriptions while maintaining tractability for motion planning optimization.
+
+Metric Temporal Logic (MTL) extends temporal specifications with quantitative timing constraints, particularly useful for traffic rule formalization and autonomous driving applications. The TR2MTL framework achieves domain-agnostic translation from natural language traffic rules to MTL specifications using chain-of-thought prompting.
+
+Reachability Analysis and Control Theory
+Hamilton-Jacobi reachability analysis provides mathematically rigorous safety guarantees by computing backward reachable sets representing states from which unsafe conditions are unavoidable. This approach enables policy-agnostic safety controllers that can be updated online as new constraints are introduced through language feedback.
+
+Control Barrier Functions (CBFs) offer another principled approach to safety verification, ensuring forward invariance of safe sets through constrained optimization. The SAFER framework integrates CBFs with LLM-based planning to provide theoretical safety guarantees while modifying nominal controllers in real-time.
+
+Data-driven reachability analysis extends traditional approaches by using historical data to construct reachable sets for robot-LLM systems without requiring explicit analytical models. This method provides rigorous safety guarantees while accommodating the inherent uncertainty of language model outputs.
+
+Probabilistic and Statistical Verification
+Conformal prediction offers distribution-free uncertainty quantification for black-box language models, enabling probabilistic safety guarantees. This approach allows systems to reason about inherent uncertainty in LLM-generated outputs and proceed with translation only when sufficiently confident.
+
+Probabilistic model checking using PRISM verifies stochastic system behavior against Probabilistic Computation Tree Logic (PCTL) specifications. Pro2Guard uses Probably Approximately Correct (PAC) bounds to ensure statistical reliability of learned Discrete-Time Markov Chains modeling agent behavior.
+
+Neural Network Verification
+Several approaches leverage neural network verification (NNV) tools to certify closed-loop safety of learned policies. However, NNV tools currently scale only to networks with a few hundred neurons, presenting significant challenges for modern generative motion planners containing millions of parameters.
+
+
+
+
+
+Linear Temporal Logic
+
+28
+
+Precise temporal specifications, well-established theory
+
+May not suit continuous dynamics
+
+Signal Temporal Logic
+
+7
+
+Real-valued timing, robustness semantics
+
+Computational complexity for optimization
+
+Control Barrier Functions
+
+4
+
+Real-time guarantees, continuous systems
+
+Requires explicit safe set definition
+
+Reachability Analysis
+
+3
+
+Formal guarantees, handles uncertainty
+
+Computational overhead for complex systems
+
+Conformal Prediction
+
+5
+
+Distribution-free, black-box compatible
+
+Requires calibration data
+
+Probabilistic Model Checking
+
+2
+
+Handles stochasticity
+
+Cannot capture time-bounded behaviors
+
+Safety Constraint Definition and Representation
+Temporal Logic-Based Constraints
+The predominant method for defining safety constraints employs temporal logic formulas that specify invariants, temporal dependencies, and timing constraints. Studies using LTL encode spatial boundaries, collision avoidance requirements, and task sequencing constraints as formal specifications. The Sentinel framework demonstrates how natural language safety requirements can be formalized into temporal logic formulas that precisely capture state invariants and temporal dependencies.
+
+SafePlan uses atomic predicates to represent world states, enabling structured specification of invariants, preconditions, and postconditions that must hold during task execution. The framework includes synonym handling mechanisms to normalize object names, addressing semantic ambiguity in natural language constraint specifications.
+
+Physical Safety Boundaries
+Multiple studies address specific physical limitations including spatial boundaries, force limits, and collision avoidance. The SAFER framework encodes comprehensive physical constraints including joint position limits, joint velocity limits, torque limits, obstacle avoidance, operational space limitations, singularity avoidance, and collision avoidance.
+
+Control Barrier Functions provide a mathematically principled approach to defining safe sets, with constraints encoded as barrier functions that ensure the system remains within designated safety boundaries. The approach allows both global constraints applicable to all operations and step-specific constraints tailored to particular task phases.
+
+Semantic and Contextual Safety
+Beyond physical constraints, several studies address semantic safety including unsafe spatial relationships, behaviors, and poses. The semantic safety filter framework by Brunke et al. combines semantically unsafe conditions inferred by large language models with geometrically defined constraints for environment-collision and self-collision avoidance.
+
+Vision-language models enable dynamic safety constraint updating based on natural language feedback and visual observations. This approach handles inherently personal, context-dependent constraints that can only be identified at deployment time, such as fragile objects or expensive surfaces.
+
+
+
+
+
+Spatial boundaries
+
+LTL/STL predicates
+
+
+Environment-specific
+
+Collision avoidance
+
+CBF, reachability sets
+
+
+Dynamic updating
+
+Force limits
+
+CBF constraints
+
+
+Robot-specific
+
+Semantic constraints
+
+VLM inference
+
+
+Context-dependent
+
+Temporal dependencies
+
+LTL formulas
+
+
+Task-specific
+
+Natural Language to Formal Specification Translation
+Parsing and Semantic Analysis
+The translation from natural language to formal specifications employs diverse parsing strategies. Lang2LTL uses pretrained large language models to extract referring expressions from natural language commands, ground expressions to real-world landmarks, and translate commands into LTL task specifications. The modular approach achieves 88.4% accuracy in translating challenging LTL formulas across unseen environments.
+
+Chain-of-thought reasoning has emerged as an effective technique for guiding step-by-step translation of complex natural language instructions. TR2MTL uses chain-of-thought in-context learning to decompose traffic rules into subtasks, enabling robust reasoning about conditional instructions.
+
+Semantic role labeling combined with soft rule-based selection restrictions enables extraction of predicates, arguments, and temporal aspects from natural language rules. This approach provides implicit explanations of output by showing intermediate reasoning steps, enhancing interpretability of the translation process.
+
+Intermediate Representations
+Multiple studies employ structured intermediate representations to bridge the gap between natural language and formal specifications. Abstract Syntax Trees (ASTs) and Finite State Automata (FSAs) serve as intermediate representations enabling formal verification of translated specifications. The Exe2FSA algorithm converts executable plans generated by language models into automaton-based representations suitable for model checking.
+
+Hierarchical Task Trees capture logical and temporal relations between sub-tasks, enabling translation of complex multi-step instructions into hierarchical LTL specifications. This representation simplifies planning while remaining straightforward to derive from human instructions.
+
+Scene graphs provide an intermediate representation that captures object-level details as symbolic graphs, enabling constraint checking through graph operations. This approach allows quick validation of action feasibility while maintaining interpretability.
+
+Handling Ambiguity and Uncertainty
+Ambiguity in natural language poses significant challenges for formal translation. Equivalence voting addresses this by generating and sampling multiple LTL formulas from natural language commands, grouping equivalent formulas, and selecting the majority group as the final specification. This approach improves translation accuracy from 88.4% to 98.0% on benchmark datasets.
+
+User-in-the-loop clarification provides an interactive approach to ambiguity resolution. DIALOGUESTL uses semantic parsing combined with user demonstrations to predict correct STL formulas from often ambiguous natural language descriptions. The approach is efficient, scalable, and robust with high accuracy using few demonstrations.
+
+Conformal prediction enables uncertainty-aware translation by assessing confidence in LLM-generated answers. When uncertainty exceeds a threshold, the system can request clarification rather than proceeding with potentially incorrect translations.
+
+Validation and Error Detection
+Multiple validation mechanisms ensure translation accuracy. Syntax checking verifies that generated specifications conform to formal grammar requirements. The AutoSafeLTL framework implements a six-step generation strategy with syntactic and semantic checks to validate translation accuracy.
+
+Semantic alignment checking ensures that translated specifications accurately reflect the original natural language intent. VernaCopter’s SemCheQ component analyzes whether STL specifications align with task descriptions, detecting and correcting semantic errors.
+
+Iterative refinement with formal feedback improves translation quality through multiple passes. CLAIRIFY uses verifier-assisted iterative prompting where syntax and constraint violations are fed back to the language model for correction. The process continues until a valid, executable plan is generated.
+
+Transformer Components and Integration
+Model Selection and Modifications
+The reviewed studies predominantly employ large-scale pretrained language models, with GPT-4 family models being most common. Modifications typically involve fine-tuning for domain-specific tasks rather than architectural changes. SELP fine-tunes CodeLlama2-7b and Llama2-7b for LTL translation and planning using negative log-likelihood loss.
+
+Smaller models demonstrate potential when properly constrained. Constraint-aware small LLMs (Qwen2.5-3B-Instruct, Qwen3-4B) outperform larger models without constraints when trained with reinforcement learning using verifiable rewards. This finding suggests that formal verification integration may reduce dependence on model scale.
+
+Vision-language models enable processing of multimodal inputs for context-aware safety reasoning. OWLv2 VLM processes RGB-D images alongside natural language commands to update safety constraint representations. The FOREWARN framework adapts the Llama-3.2-11B-Vision-Instruct model by replacing observation tokenization with a world model’s encoder to enable latent state reasoning.
+
+Integration with Robot Control Systems
+Integration approaches range from direct plan generation to constraint specification for downstream planners. NARRATE demonstrates layered integration where LLMs frame constraints and objective functions as mathematical expressions subsequently used in Model Predictive Control. This approach maintains interpretability while enabling flexible natural language control.
+
+Several studies integrate transformers with motion planning through intermediate formal specifications. LTL formulas generated by LLMs are converted to Büchi automata and combined with semantic occupancy maps for motion planning. The resulting paths satisfy natural language instructions while avoiding collisions with mapped obstacles.
+
+Real-time integration requires efficient inference and verification. PASTEL achieves online safety enforcement by using cross-attention mechanisms to ensure model predictions attend to specification tokens during autoregressive inference. This approach enables trajectory generation that satisfies STL specifications without requiring offline verification.
+
+Safety Guarantees and Verification Results
+Quantitative Safety Improvements
+The reviewed studies report substantial improvements in safety metrics through formal verification integration. RoboGuard reduces execution of unsafe plans from 92% to below 2.5% without compromising performance on safe plans. In real-world experiments, the system prevents 100% of adversarial attacks while maintaining task completion capability.
+
+SAFER achieves 77.5% reduction in safety violations with DeepSeek-r1 and 47% reduction with GPT-4o compared to unguarded baselines. SafePlan demonstrates 90.5% reduction in harmful task prompt acceptance while maintaining reasonable acceptance of safe tasks.
+
+Fine-tuning with formal verification feedback improves specification compliance from 60% to over 90%. The joint verification and refinement approach achieves 30% improvement in probability of generating plans that meet task specifications.
+
+
+
+
+
+
+RoboGuard
+
+8% (92% unsafe)
+
+97.5%+
+
+89.5%+
+
+Adversarial attacks
+
+SAFER
+
+Variable
+
+77.5% reduction
+
+Significant
+
+Complex long-horizon tasks
+
+SafePlan
+
+Not specified
+
+90.5% reduction
+
+Significant
+
+Harmful prompt filtering
+
+SELP
+
+Baseline planners
+
++10.8% safety rate
+
+10.8%
+
+Drone navigation
+
+Fine-tuning with formal feedback
+
+60%
+
+90%
+
+30%
+
+Autonomous driving
+
+Real-World Validation
+Multiple studies validate safety guarantees on physical robot systems. Ahmad Hafez et al. demonstrate their safety assurance framework on a JetRacer in a Cyber-Physical Systems laboratory environment. The system ensures collision avoidance while navigating to specified goals under LLM control.
+
+VernaCopter achieves 100% goal-reaching and collision-free rates in tested scenarios, significantly outperforming conventional NL-prompting-based planners. The formal verification approach eliminates unsafe plan execution while maintaining task completion capability.
+
+NARRATE demonstrates successful real-world deployment on Franka Emika Panda and custom manipulator platforms, though collision rates increase in real-world settings due to imperfect perception. This highlights the importance of robust perception for maintaining verified safety properties during deployment.
+
+Comparison with Baseline Approaches
+Studies consistently demonstrate improvements over unverified baselines. SELP outperforms state-of-the-art planners by 10.8% in safety rate for drone navigation and 20.4% for robot manipulation tasks. NSP produces paths that are 19-77% shorter than state-of-the-art neural approaches while achieving 90.1% valid path generation.
+
+Pro2Guard outperforms AgentSpec in runtime efficiency, probabilistic explainability, and engineering effort while achieving 100% prediction of traffic law violations and collisions in autonomous driving scenarios. The system can enforce safety on up to 93.6% of unsafe tasks in embodied agent domains.
+
+The PASTEL approach achieves 74.3% higher specification satisfaction compared to baseline PACT models that lack formal constraint integration. This improvement demonstrates the value of incorporating temporal logic specifications directly into transformer architectures.
+
+Synthesis: Reconciling Divergent Approaches
+The literature reveals significant heterogeneity in how transformer-based systems incorporate formal verification for safety guarantees. This diversity reflects fundamental trade-offs between verification completeness, computational efficiency, and practical deployability.
+
+Architectural Patterns and Their Implications
+Pipeline architectures with separate verification stages predominate (approximately 44% of studies), offering modularity and clear separation of concerns. This approach enables use of established verification tools without modifying transformer architectures but may introduce latency and limit real-time adaptation. Studies reporting highest safety improvements (e.g., RoboGuard’s 89.5%+ improvement) typically employ this pattern.
+
+Integrated systems that embed verification within transformer inference (approximately 28% of studies) achieve tighter coupling but require specialized architectures. PASTEL’s direct integration of STL specifications with transformer attention mechanisms exemplifies this approach, achieving 74.3% improvement in specification satisfaction. However, this approach limits compatibility with off-the-shelf models.
+
+Mediation layer approaches that generate intermediate formal specifications provide flexibility while maintaining verifiability. These architectures enable use of existing motion planners and verification tools while leveraging transformer capabilities for natural language understanding.
+
+Temporal Logic Selection and Application
+The choice between LTL, STL, and MTL reflects different safety requirement characteristics. LTL suits discrete temporal specifications and enjoys mature verification tool support, but may not adequately capture continuous dynamics. STL provides quantitative semantics suitable for continuous systems but increases computational complexity. MTL offers timing constraint specification critical for real-time applications like autonomous driving.
+
+Studies achieving highest translation accuracy employ multiple verification passes. Equivalence voting with chain-of-thought reasoning achieves 98.0% accuracy, while single-pass approaches typically achieve 75-90%. This suggests that verification confidence correlates with translation redundancy.
+
+The Scalability-Completeness Trade-off
+A fundamental tension exists between verification completeness and computational scalability. Formal methods based solely on model checking face computational explosion with large state spaces. Neural network verification tools scale only to hundreds of neurons while modern transformers contain millions of parameters.
+
+Studies address this through approximation strategies. Relaxation-based verification scales exponentially better than solver-based solutions while maintaining soundness guarantees. Conformal prediction provides distribution-free uncertainty bounds without requiring complete state enumeration. Data-driven reachability analysis constructs safety guarantees from historical data rather than analytical models.
+
+The practical implication is that current systems provide probabilistic rather than absolute safety guarantees in complex scenarios. Studies reporting highest safety rates typically evaluate in constrained environments with limited state spaces. Deployment in open-ended real-world settings remains challenging.
+
+Real-World Deployment Considerations
+Studies evaluating both simulation and real-world performance consistently report degradation in physical settings. NARRATE demonstrates increased collision rates in real-world deployment due to imperfect perception. This suggests that verified safety properties may not transfer completely across the simulation-to-reality gap.
+
+Several architectural features enhance real-world robustness. Online constraint updating enables adaptation to deployment-time observations. Proactive risk prediction allows safety intervention before violations occur. Conformal prediction-based uncertainty quantification enables seeking clarification when confidence is insufficient.
+
+However, computational overhead remains a barrier. High inference latency of large vision-language models necessitates manual intervention policies for time-critical scenarios. Systems achieving real-time performance typically employ smaller models or pre-computed verification results.
+
+Emerging Consensus and Remaining Gaps
+Despite methodological diversity, the literature converges on several principles. First, formal specification of safety requirements before execution outperforms post-hoc constraint checking. Second, multi-level verification (semantic, plan, trajectory) provides more robust guarantees than single-level approaches. Third, iterative refinement with formal feedback improves translation accuracy beyond single-pass methods.
+
+Key gaps remain. Current approaches do not adequately handle time-bounded behaviors requiring real-time guarantees. Integration with vision-language-action models for end-to-end verification is nascent. Verification of multi-robot coordination under uncertainty lacks mature solutions. Security against adversarial manipulation of formal specifications themselves is underexplored.
+
+The synthesis indicates that transformer-based mediation layers can effectively incorporate formal verification methods when: (1) safety requirements are expressible in tractable temporal logics, (2) computational resources permit either real-time verification or pre-computation of safe action sets, (3) environmental uncertainty is bounded and characterizable, and (4) human oversight remains available for edge cases exceeding verification coverage.
+
+References
+Yunhao Yang, William Ward, Zichao Hu, Joydeep Biswas, U. Topcu (2024). Joint Verification and Refinement of Language Models for Safety-Constrained Planning. arXiv.org
+Adrian Boteanu, T. Howard, Jacob Arkin, H. Kress-Gazit (2016). A model for verifiable grounding and execution of complex natural language instructions. IEEE/RJS International Conference on Intelligent RObots and Systems
+Ahmad Hafez, Alireza Naderi Akhormeh, Amr Hegazy, Amr Alanwar (2025). Safe LLM-Controlled Robots with Formal Guarantees via Reachability Analysis. arXiv.org
+S. Zhan, Yao Liu, Philip Wang, Zinan Wang, Qineng Wang, and 8 more (2025). SENTINEL: A Multi-Level Formal Framework for Safety Evaluation of LLM-based Embodied Agents
+Pierre-Louis Guhur, Shizhe Chen, Ricardo Garcia Pinel, Makarand Tapaswi, I. Laptev, and 1 more (2022). Instruction-driven history-aware policies for robotic manipulations. Conference on Robot Learning
+Danqing Chen, Tobias Ladner, Ahmed Rayen Mhadhbi, Matthias Althoff (2025). Language Models That Walk the Talk: A Framework for Formal Fairness Certificates. arXiv.org
+Shaochen Wang, Zhangli Zhou, Bin Li, Zhijun Li, Zheng Kan (2023). Multi-modal interaction with transformers: bridging robots and human with natural language. Robotica (Cambridge. Print)
+Eun-Young Kang, Miguel Campusano (2023). Towards Safety Assessment of Robot Behaviors in SMACH. Asia-Pacific Software Engineering Conference
+Ziyi Yang, S. S. Raman, Ankit Shah, Stefanie Tellex (2023). Plug in the Safety Chip: Enforcing Constraints for LLM-driven Robot Agents. IEEE International Conference on Robotics and Automation
+Abdulrahman Althobaiti, Angel Ayala, JingYing Gao, Ali Almutairi, Mohammad Deghat, and 2 more (2024). How Can LLMs and Knowledge Graphs Contribute to Robot Safety? A Few-Shot Learning Approach. arXiv.org
+Elias Stengel-Eskin, Andrew Hundt, Zhuohong He, Aditya Murali, N. Gopalan, and 2 more (2021). Guiding Multi-Step Rearrangement Tasks with Natural Language Instructions. Conference on Robot Learning
+Zhouxing Shi, Huan Zhang, Kai-Wei Chang, Minlie Huang, Cho-Jui Hsieh (2020). Robustness Verification for Transformers. International Conference on Learning Representations
+Leonardo Santos, Zirui Li, Lasse Peters, Somil Bansal, Andrea V. Bajcsy (2024). Updating Robot Safety Representations Online From Natural Language Feedback. IEEE International Conference on Robotics and Automation
+Yue Meng, Sai H. Vemprala, Rogerio Bonatti, Chuchu Fan, Ashish Kapoor (2024). ConBaT: Control Barrier Transformer for Safe Robot Learning from Demonstrations. IEEE International Conference on Robotics and Automation
+Benjamin J Choi, Ju-Youn Park, C. Park (2021). Formal Verification for Human-Robot Interaction in Medical Environments. IEEE/ACM International Conference on Human-Robot Interaction
+Davide Corsi, Enrico Marchesini, A. Farinelli, P. Fiorini (2020). Formal Verification for Safe Deep Reinforcement Learning in Trajectory Generation. International Conference on Robotic Computing
+Brandon Bohrer, Yong Kiam Tan, Stefan Mitsch, A. Sogokon, André Platzer (2019). A Formal Safety Net for Waypoint-Following in Ground Robots. IEEE Robotics and Automation Letters
+Vasumathi Raman, Constantine Lignos, Cameron Finucane, Kenton C. T. Lee, Mitchell P. Marcus, and 1 more (2013). Sorry Dave, I'm Afraid I Can't Do That: Explaining Unachievable Robot Tasks Using Natural Language. Robotics: Science and Systems
+Ike Obi, Vishnunandan L. N. Venkatesh, Weizheng Wang, Ruiqi Wang, Dayoon Suh, and 3 more (2025). SafePlan: Leveraging Formal Logic and Chain-of-Thought Reasoning for Enhanced Safety in LLM-based Robotic Task Planning. arXiv.org
+Ziming Wang, Qingchen Liu, Jiahu Qin, Man Li (2024). Ensuring Safety in LLM-Driven Robotics: A Cross-Layer Sequence Supervision Mechanism. IEEE/RJS International Conference on Intelligent RObots and Systems
+Nathan Fulton, André Platzer (2018). Safe Reinforcement Learning via Formal Methods: Toward Safe Control Through Proof and Learning. AAAI Conference on Artificial Intelligence
+A. Bucker, Luis F. C. Figueredo, Sami Haddadin, Ashish Kapoor, Shuang Ma, and 2 more (2022). LATTE: LAnguage Trajectory TransformEr. IEEE International Conference on Robotics and Automation
+Jun Wang, David Smith Sundarsingh, Jyotirmoy V. Deshmukh, Y. Kantaros (2025). ConformalNL2LTL: Translating Natural Language Instructions into Temporal Logic Formulas with Conformal Correctness Guarantees. arXiv.org
+Michael Ahn, Anthony Brohan, Noah Brown, Yevgen Chebotar, Omar Cortes, and 38 more (2022). Do As I Can, Not As I Say: Grounding Language in Robotic Affordances. Conference on Robot Learning
+Xiao Li, Zachary Serlin, Guang Yang, C. Belta (2019). A formal methods approach to interpretable reinforcement learning for robotic planning. Science Robotics
+Teun van de Laar, Zengjie Zhang, Shuhao Qi, S. Haesaert, Zhiyong Sun (2024). VernaCopter: Disambiguated Natural-Language-Driven Robot via Formal Specifications. arXiv.org
+A. Bucker, Luis F. C. Figueredo, Sami Haddadin, Ashish Kapoor, Shuang Ma, and 1 more (2022). Reshaping Robot Trajectories Using Natural Language Commands: A Study of Multi-Modal Data Alignment Using Transformers. IEEE/RJS International Conference on Intelligent RObots and Systems
+Xingzhou Lou, Junge Zhang, Ziyan Wang, Kaiqi Huang, Yali Du (2024). Safe Reinforcement Learning with Free-form Natural Language Constraints and Pre-Trained Language Models. Adaptive Agents and Multi-Agent Systems
+Li Wang, A. Ames, M. Egerstedt (2017). Safety Barrier Certificates for Collisions-Free Multirobot Systems. IEEE Transactions on robotics
+Parv Kapoor, Sai H. Vemprala, Ashish Kapoor (2024). Logically Constrained Robotics Transformers for Enhanced Perception-Action Planning. arXiv.org
+E. Kaigom (2023). Natural Robot Guidance using Transformers. IEEE International Conference on Emerging Technologies and Factory Automation
+J. Rosser, Jacob Arkin, Siddharth Patki, T. Howard (2023). Resolving Ambiguity via Dialogue to Correct Unsynthesizable Controllers for Free-Flying Robots. IEEE Aerospace Conference
+Zachary Ravichandran, Alexander Robey, Vijay Kumar, George J. Pappas, Hamed Hassani (2025). Safety Guardrails for LLM-Enabled Robots. arXiv.org
+Dennis Walter, Holger Täubig, Christoph Lüth (2010). Experiences in Applying Formal Verification in Robotics. International Conference on Computer Safety, Reliability, and Security
+Jungjae Lee, Dongjae Lee, Chihun Choi, Youngmin Im, Jaeyoung Wi, and 4 more (2025). VeriSafe Agent: Safeguarding Mobile GUI Agent via Logic-based Action Verification
+Xiaowu Sun, Haitham Khedr, Yasser Shoukry (2018). Formal verification of neural network controlled autonomous systems. International Conference on Hybrid Systems: Computation and Control
+Yue Meng, Sai H. Vemprala, Rogerio Bonatti, Chuchu Fan, Ashish Kapoor (2023). ConBaT: Control Barrier Transformer for Safe Policy Learning. arXiv.org
+Benedict Quartey, Eric Rosen, Stefanie Tellex, G. Konidaris (2024). Verifiably Following Complex Robot Instructions with Foundation Models. IEEE International Conference on Robotics and Automation
+Marta Skreta, N. Yoshikawa, Sebastian Arellano-Rubach, Zhi Ji, L. B. Kristensen, and 4 more (2023). Errors are Useful Prompts: Instruction Guided Task Programming with Verifier-Assisted Iterative Prompting. arXiv.org
+Seif Ismail, Antonio Arbues, Ryan Cotterell, René Zurbrügg, Carmen Amo Alonso (2024). NARRATE: Versatile Language Architecture for Optimal Control in Robotics. IEEE/RJS International Conference on Intelligent RObots and Systems
+Dipendra Misra, Jaeyong Sung, Kevin Lee, Ashutosh Saxena (2014). Tell me Dave: Context-sensitive grounding of natural language to manipulation instructions. Int. J. Robotics Res.
+Hao Zhang, Hao Wang, Z. Kan (2022). Exploiting Transformer in Reinforcement Learning for Interpretable Temporal Logic Motion Planning. arXiv.org
+Tsung-Yen Yang, Michael Y Hu, Yinlam Chow, P. Ramadge, Karthik Narasimhan (2020). Safe Reinforcement Learning with Natural Language Constraints. Neural Information Processing Systems
+Aaron Councilman, David Fu, Aryan Gupta, Chengxiao Wang, David Grove, and 2 more (2025). Towards Formal Verification of LLM-Generated Code from Natural Language Prompts. arXiv.org
+Maximilian Tolle, Theo Gruner, Daniel Palenicek, Tim Schneider, Jonas Gunster, and 4 more (2025). Towards Safe Robot Foundation Models Using Inductive Biases. arXiv.org
+Stefan Mitsch, Khalil Ghorbal, David Vogelbacher, André Platzer (2016). Formal verification of obstacle avoidance and navigation of ground robots. Int. J. Robotics Res.
+Yilin Wu, Ran Tian, Gokul Swamy, Andrea Bajcsy (2025). From Foresight to Forethought: VLM-In-the-Loop Policy Steering via Latent Alignment. Robotics
+Tuan Le, R. Shefin, Debashis Gupta, Thai Le, Sarra M. Alqahtani (2025). Verification-Guided Falsification for Safe RL via Explainable Abstraction and Risk-Aware Exploration. arXiv.org
+Junle Li, Meiqi Tian, Bingzhuo Zhong (2025). Automatic Generation of Safety-compliant Linear Temporal Logic via Large Language Model: A Self-supervised Framework. arXiv.org
+Kumar Manas, A. Paschke (2023). Semantic Role Assisted Natural Language Rule Formalization for Intelligent Vehicle. RuleML+RR
+Davide Corsi, Guy Amir, Andoni Rodríguez, César Sánchez, Guy Katz, and 1 more (2024). Verification-Guided Shielding for Deep Reinforcement Learning. RLJ
+Sylvain Raïs, Julien Brunel, D. Doose, Fr'ed'eric Herbreteau (2024). Cross-layer Formal Verification of Robotic Systems. FMAS@iFM
+Haotong Zhang, Hao Wang, Zheng Kan (2022). Exploiting Transformer in Sparse Reward Reinforcement Learning for Interpretable Temporal Logic Motion Planning. IEEE Robotics and Automation Letters
+Yanni Kouskoulas, David W. Renshaw, André Platzer, P. Kazanzides (2013). Certifying the safe design of a virtual fixture control algorithm for a surgical robot. International Conference on Hybrid Systems: Computation and Control
+Lukas Brunke, Yanni Zhang, Ralf Romer, Jack Naimer, Nikola Staykov, and 2 more (2024). Semantically Safe Robot Manipulation: From Semantic Scene Understanding to Motion Safeguards. IEEE Robotics and Automation Letters
+Jun Wang, Guocheng He, Y. Kantaros (2024). Safe Task Planning for Language-Instructed Multi-Robot Systems using Conformal Prediction. arXiv.org
+He Zhu, Zikang Xiong, Stephen Magill, S. Jagannathan (2019). An inductive synthesis framework for verifiable reinforcement learning. ACM-SIGPLAN Symposium on Programming Language Design and Implementation
+Po-Sen Huang, Robert Stanforth, Johannes Welbl, Chris Dyer, Dani Yogatama, and 3 more (2019). Achieving Verified Robustness to Symbol Substitutions via Interval Bound Propagation. Conference on Empirical Methods in Natural Language Processing
+M. Proetzsch, K. Berns, T. Schüle, K. Schneider (2007). Formal verification of safety behaviours of the outdoor robot ravon. ICINCO-RA
+Marco Casadio, Tanvi Dinkar, Ekaterina Komendantskaya, Luca Arnaboldi, Omri Isac, and 4 more (2024). NLP verification: towards a general methodology for certifying robustness. European journal of applied mathematics
+Xin Quan, Marco Valentino, Louise A. Dennis, André Freitas (2024). Verification and Refinement of Natural Language Explanations through LLM-Symbolic Theorem Proving. Conference on Empirical Methods in Natural Language Processing
+Joshua Choi, Thomas Howard, Joshua Rosser, Francesca Daszak, Andres Mora Vargas, and 2 more (2025). Enabling Verification of Language Instructions through Bidirectional Communication for Astrobee. IEEE Aerospace Conference
+R. Alami, K. Eder, Guy Hoffman, H. Kress-Gazit (2019). Verification and Synthesis of Human-Robot Interaction (Dagstuhl Seminar 19081). Dagstuhl Reports
+L. Kuper, Guy Katz, Justin Emile Gottschlich, Kyle D. Julian, Clark W. Barrett, and 1 more (2018). Toward Scalable Verification for Safety-Critical Deep Networks. arXiv.org
+Jae Sung Park, Biao Jia, Mohit Bansal, Dinesh Manocha (2017). Efficient Generation of Motion Plans from Attribute-Based Natural Language Instructions Using Dynamic Constraint Mapping. IEEE International Conference on Robotics and Automation
+Aly Magassouba, Komei Sugiura, H. Kawai (2021). CrossMap Transformer: A Crossmodal Masked Path Transformer Using Double Back-Translation for Vision-and-Language Navigation. IEEE Robotics and Automation Letters
+Anthony Cowley, C. J. Taylor (2011). Towards language-based verification of robot behaviors. 2011 IEEE/RSJ International Conference on Intelligent Robots and Systems
+Jeremy Siburian, Keisuke Shirai, C. C. Beltran-Hernandez, Masashi Hamaya, Michael Görner, and 1 more (2025). Grounded Vision-Language Interpreter for Integrated Task and Motion Planning. arXiv.org
+Xuan Xie, K. Kersting, D. Neider (2022). Neuro-Symbolic Verification of Deep Neural Networks. International Joint Conference on Artificial Intelligence
+Guojun Xie, Huanhuan Yang, Hao Deng, Zhengpu Shi, Gang Chen (2023). Formal Verification of Robot Rotary Kinematics. Electronics
+Bharat Prakash, Nicholas R. Waytowich, Ashwinkumar Ganesan, T. Oates, T. Mohsenin (2020). Guiding Safe Reinforcement Learning Policies Using Structured Language Constraints. SafeAI@AAAI
+F. Vicentini, M. Askarpour, Matteo Rossi, D. Mandrioli (2020). Safety Assessment of Collaborative Robotics Through Automated Formal Verification. IEEE Transactions on robotics
+A. Khan, Michael Andrev, M. Murtaza, Sergio Aguilera, Rui Zhang, and 3 more (2025). Safety Aware Task Planning via Large Language Models in Robotics. arXiv.org
+Davide Corsi, Luca Marzari, Ameya Pore, A. Farinelli, A. Casals, and 2 more (2023). Constrained Reinforcement Learning and Formal Verification for Safe Colonoscopy Navigation. IEEE/RJS International Conference on Intelligent RObots and Systems
+Aditya Parameshwaran, Yue Wang (2025). Temporal Logic Guided Safe Navigation for Autonomous Vehicles. arXiv.org
+Manni Zhang, Xinyu Zhang (2016). Formally verifying navigation safety for ground robots. IEEE International Conference on Mechatronics and Automation
+Y. Emam, Gennaro Notomista, Paul Glotfelter, Z. Kira, M. Egerstedt (2021). Safe Reinforcement Learning Using Robust Control Barrier Functions. IEEE Robotics and Automation Letters
+Jakob Thumm, M. Althoff (2022). Provably Safe Deep Reinforcement Learning for Robotic Manipulation in Human Environments. IEEE International Conference on Robotics and Automation
+Amir Bayat, Alessandro Abate, Necmiye Ozay, Raphaël M. Jungers (2025). LLM-Enhanced Symbolic Control for Safety-Critical Applications. arXiv.org
+S. Bensalem, Xiaowei Huang, Wenjie Ruan, Qiyi Tang, Changshun Wu, and 1 more (2024). Bridging formal methods and machine learning with model checking and global optimisation. J. Log. Algebraic Methods Program.
+David J. Porfirio, Allison Sauppé, Aws Albarghouthi, Bilge Mutlu (2018). Authoring and Verifying Human-Robot Interactions. ACM Symposium on User Interface Software and Technology
+Andre A. Geraldes, Luca Geretti, D. Bresolin, R. Muradore, P. Fiorini, and 2 more (2018). Formal Verification of Medical CPS. ACM Trans. Cyber Phys. Syst.
+Byron Heersink, Pape Sylla, Michael A. Warren (2022). Formal Verification of Octorotor Flight Envelope Using Barrier Functions and Satisfiability Modulo Theories Solving. IEEE Control Systems Letters
+Jiayi Pan, Glen Chou, D. Berenson (2023). Data-Efficient Learning of Natural Language to Linear Temporal Logic Translators for Robot Task Specification. IEEE International Conference on Robotics and Automation
+Danil S. Grigorev, A. Kovalev, Aleksandr I. Panov (2025). VerifyLLM: LLM-Based Pre-Execution Task Plan Verification for Robots. arXiv.org
+Shashank Pathak, G. Metta, A. Tacchella (2014). Is verification a requisite for safe adaptive robots?. IEEE International Conference on Systems, Man and Cybernetics
+Qian Meng, Jin Peng Zhou, Kilian Q. Weinberger, H. Kress-Gazit (2025). INPROVF: Leveraging Large Language Models to Repair High-level Robot Controllers from Assumption Violations. arXiv.org
+Vanya Cohen, J. Liu, Raymond Mooney, Stefanie Tellex, David Watkins (2024). A Survey of Robotic Language Grounding: Tradeoffs Between Symbols and Embeddings. International Joint Conference on Artificial Intelligence
+Jacob Arkin, Daehyung Park, Subhro Roy, Matthew R. Walter, N. Roy, and 2 more (2020). Multimodal estimation and communication of latent semantic knowledge for robust execution of robot instructions. Int. J. Robotics Res.
+Zhendong Chen, ZhanShang Nie, Shixing Wan, JunYi Li, YongTian Cheng, and 1 more (2025). An LLM-powered Natural-to-Robotic Language Translation Framework with Correctness Guarantees. arXiv.org
+Hao Liu, Lisa Lee, Kimin Lee, P. Abbeel (2022). Instruction-Following Agents with Jointly Pre-Trained Vision-Language Models. arXiv.org
+Stefan Mitsch, Khalil Ghorbal, André Platzer (2013). On Provably Safe Obstacle Avoidance for Autonomous Robotic Ground Vehicles. Robotics: Science and Systems
+Kaiqu Liang, Zixu Zhang, J. F. Fisac (2024). Introspective Planning: Aligning Robots' Uncertainty with Inherent Task Ambiguity. Neural Information Processing Systems
+Xiaowei Huang, Wenjie Ruan, Qiyi Tang, Xingyu Zhao (2022). Bridging Formal Methods and Machine Learning with Global Optimisation. IEEE International Conference on Formal Engineering Methods
+Pierre El Mqirmi, F. Belardinelli, Borja G. Leon (2021). An Abstraction-based Method to Check Multi-Agent Deep Reinforcement-Learning Behaviors. Adaptive Agents and Multi-Agent Systems
+Haoze Wu, Clark W. Barrett, Nina Narodytska (2023). Lemur: Integrating Large Language Models in Automated Program Verification. International Conference on Learning Representations
+S. Gubbi, Raviteja Upadrashta, B. Amrutur (2020). Translating Natural Language Instructions to Computer Programs for Robot Manipulation. IEEE/RJS International Conference on Intelligent RObots and Systems
+Silvano Dal-Zilio, P. Hladik, F. Ingrand, A. Mallet (2022). A formal toolchain for offline and run-time verification of robotic systems. Robotics Auton. Syst.
+Nathan Fulton, André Platzer (2019). Verifiably Safe Off-Model Reinforcement Learning. International Conference on Tools and Algorithms for Construction and Analysis of Systems
+Yunhao Yang, Junyuan Hong, Gabriel J. Perin, Zhiwen Fan, Li Yin, and 2 more (2025). AD-VF: LLM-Automatic Differentiation Enables Fine-Tuning-Free Robot Planning from Formal Methods Feedback. arXiv.org
+M. Askarpour, D. Mandrioli, M. Rossi, F. Vicentini (2016). SAFER-HRC: Safety Analysis Through Formal vERification in Human-Robot Collaboration. International Conference on Computer Safety, Reliability, and Security
+David J. Jilk (2016). Limits to Verification and Validation of Agentic Behavior. Artificial Intelligence Safety and Security
+Dang M. Tran, Hui Li, Hongsheng He (2023). AI Planning from Natural-Language Instructions for Trustworthy Human-Robot Communication. International Conference on Software Reuse
+Chencheng Tang, M. Althoff (2023). Formal Verification of Robotic Contact Tasks via Reachability Analysis. IFAC-PapersOnLine
+Fang Yan, Simon Foster, Ibrahim Habli (2023). Automated Compositional Verification for Robotic State Machines using Isabelle/HOL. IEEE International Conference on Engineering of Complex Computer Systems
+Daniel Hess, M. Althoff, T. Sattel (2014). Formal verification of maneuver automata for parameterized motion primitives. 2014 IEEE/RSJ International Conference on Intelligent Robots and Systems
+Udayan Mandal, Guy Amir, Haoze Wu, Ieva Daukantas, Fletcher Lee Newell, and 7 more (2024). Formally Verifying Deep Reinforcement Learning Controllers with Lyapunov Barrier Certificates. Formal Methods in Computer-Aided Design
+Hao Liu, Lisa Lee, Kimin Lee, P. Abbeel (2022). Instruction-Following Agents with Multimodal Transformer
+Nathan Hunt, Nathan Fulton, Sara Magliacane, Nghia Hoang, Subhro Das, and 1 more (2020). Verifiably safe exploration for end-to-end reinforcement learning. International Conference on Hybrid Systems: Computation and Control
+Pusen Dong, Tianchen Zhu, Yue Qiu, Haoyi Zhou, Jianxin Li (2024). From Text to Trajectory: Exploring Complex Constraint Representation and Decomposition in Safe Reinforcement Learning. Neural Information Processing Systems
+Adrian Boteanu, Jacob Arkin, Siddharth Patki, T. Howard, H. Kress-Gazit (2017). Robot-Initiated Specification Repair through Grounded Language Interaction. arXiv.org
+Alexei Kopylov, Stefan Mitsch, A. Nogin, Michael A. Warren (2021). Formally Verified Safety Net for Waypoint Navigation Neural Network Controllers. World Congress on Formal Methods
+Ashkan B. Jeddi, Nariman L. Dehghani, A. Shafieezadeh (2021). Lyapunov-based uncertainty-aware safe reinforcement learning. arXiv.org
+Ankush Desai, T. Dreossi, S. Seshia (2017). Combining Model Checking and Runtime Verification for Safe Robotics. Runtime Verification
+Xiao Li, C. Belta (2019). Temporal Logic Guided Safe Reinforcement Learning Using Control Barrier Functions. arXiv.org
+Sara Mohammadinejad, Jesse Thomason, Jyotirmoy V. Deshmukh (2022). Interactive Learning from Natural Language and Demonstrations using Signal Temporal Logic. arXiv.org
+Guojun Xie, Huanhuan Yang, Gang Chen (2024). A framework for formal verification of robot kinematics. J. Log. Algebraic Methods Program.
+Sathwik Karnik, Zhang-Wei Hong, Nishant Abhangi, Yen-Chen Lin, Tsun-Hsuan Wang, and 1 more (2024). Embodied Red Teaming for Auditing Robotic Foundation Models. arXiv.org
+Weiyu Liu, Chris Paxton, Tucker Hermans, D. Fox (2021). StructFormer: Learning Spatial Structure for Language-Guided Semantic Rearrangement of Novel Objects. IEEE International Conference on Robotics and Automation
+Michael Rathmair, Christoph Luckeneder, Thomas Haspl, Bernhard Reiterer, Ralph Hoch, and 2 more (2021). Formal Verification of Safety Properties of Collaborative Robotic Applications including Variability. IEEE International Symposium on Robot and Human Interactive Communication
+Xiyang Wu, Ruiqi Xian, Tianrui Guan, Jing Liang, Souradip Chakraborty, and 4 more (2024). On the Safety Concerns of Deploying LLMs/VLMs in Robotics: Highlighting the Risks and Vulnerabilities. arXiv.org
+Parv Kapoor, Akila Ganlath, Michael Clifford, Changliu Liu, Sebastian Scherer, and 1 more (2025). Constrained Decoding for Robotics Foundation Models. arXiv.org
+Stefan B. Liu, M. Althoff (2021). Online Verification of Impact-Force-Limiting Control for Physical Human-Robot Interaction. IEEE/RJS International Conference on Intelligent RObots and Systems
+Ankush Desai, S. Qadeer, S. Seshia (2018). Programming Safe Robotics Systems: Challenges and Advances. Leveraging Applications of Formal Methods
+Kyle D. Julian, Mykel J. Kochenderfer (2019). Guaranteeing Safety for Neural Network-Based Aircraft Collision Avoidance Systems. Symposium on Dependable Autonomic and Secure Computing
+Matt Luckcuck, M. Farrell, Angelo Ferrando, R. C. Cardoso, Louise Dennis, and 1 more (2022). A Compositional Approach to Verifying Modular Robotic Systems. arXiv.org
+Michael Murray, M. Cakmak (2022). Following Natural Language Instructions for Household Tasks With Landmark Guided Search and Reinforced Pose Adjustment. IEEE Robotics and Automation Letters
+M. Kwiatkowska (2019). Safety Verification for Deep Neural Networks with Provable Guarantees (Invited Paper). International Conference on Concurrency Theory
+R. Simmons, C. Pecheur, Grama Srinivasan (2000). Towards automatic verification of autonomous systems. IEEE/RJS International Conference on Intelligent RObots and Systems
+Mingyu Cai, C. Vasile (2021). Safety-Critical Learning of Robot Control With Temporal Logic Specifications. IEEE Transactions on Automatic Control
+Sudeep Dasari, A. Gupta (2020). Transformers for One-Shot Visual Imitation. Conference on Robot Learning
+M. Foughali, Alexander Zuepke (2022). Formal Verification of Real-Time Autonomous Robots: An Interdisciplinary Approach. Frontiers in Robotics and AI
+Bo Wen (2025). A Framework for Inherently Safer AGI through Language-Mediated Active Inference. arXiv.org
+Jason Liu, Ziyi Yang, Benjamin Schornstein, Sam Liang, Ifrah Idrees, and 2 more (2022). Lang2LTL: Translating Natural Language Commands to Temporal Specification with Large Language Models
+Xiaoxue Zang, Ashwini Pokle, Marynel Vázquez, Kevin Chen, Juan Carlos Niebles, and 2 more (2018). Translating Navigation Instructions in Natural Language to a High-Level Plan for Behavioral Robot Navigation. Conference on Empirical Methods in Natural Language Processing
+Sorin Adam, M. Larsen, Kjeld Jensen, U. Schultz (2014). Towards Rule-Based Dynamic Safety Monitoring for Mobile Robots. Simulation, Modeling, and Programming for Autonomous Robots
+L. Guan, Yifan Zhou, Denis Liu, Yantian Zha, H. B. Amor, and 1 more (2024). "Task Success" is not Enough: Investigating the Use of Video-Language Models as Behavior Critics for Catching Undesirable Agent Behaviors. arXiv.org
+Matthias Cosler, Christopher Hahn, Daniel Mendoza, Frederik Schmitt, Caroline Trippel (2023). nl2spec: Interactively Translating Unstructured Natural Language to Temporal Logics with Large Language Models. International Conference on Computer Aided Verification
+Xin Quan, Marco Valentino, Louise A. Dennis, André Freitas (2025). Faithful and Robust LLM-Driven Theorem Proving for NLI Explanations. Annual Meeting of the Association for Computational Linguistics
+Mark Chevallier, F. Smola, Richard Schmoetten, J. D. Fleuriot (2025). Formally Verified Neurosymbolic Trajectory Learning via Tensor-based Linear Temporal Logic on Finite Traces. arXiv.org
+Mani Amani, Reza Akhavian (2025). Bayesian BIM-Guided Construction Robot Navigation with NLP Safety Prompts in Dynamic Environments. arXiv.org
+Martijn J. A. Zeestraten, Aaron Pereira, M. Althoff, S. Calinon (2016). Online motion synthesis with minimal intervention control and formal safety guarantees. IEEE International Conference on Systems, Man and Cybernetics
+Yi Wu, Zikang Xiong, Yiran Hu, Shreyash S. Iyengar, Nan Jiang, and 3 more (2024). SELP: Generating Safe and Efficient Task Plans for Robot Agents with Large Language Models. IEEE International Conference on Robotics and Automation
+Davide Corsi, Enrico Marchesini, A. Farinelli (2021). Formal verification of neural networks for safety-critical tasks in deep reinforcement learning. Conference on Uncertainty in Artificial Intelligence
+Luca Marzari, Isabella Mastroeni, Alessandro Farinelli (2025). Advancing Neural Network Verification through Hierarchical Safety Abstract Interpretation. arXiv.org
+Zeyu Feng, Hao Luan, Pranav Goyal, Harold Soh (2024). LTLDoG: Satisfying Temporally-Extended Symbolic Constraints for Safe Diffusion-Based Planning. IEEE Robotics and Automation Letters
+A. Benton, Eugen Solowjow, Prithvi Akella (2023). Verifiable Learned Behaviors via Motion Primitive Composition: Applications to Scooping of Granular Media. IEEE International Conference on Robotics and Automation
+Stefano Spellini, M. Lora, Sudipta Chattopadhyay, F. Fummi (2018). Work-in-Progress: Introducing Assume-Guarantee Contracts for Verifying Robotic Applications. International Conference on Hardware/Software Codesign and System Synthesis
+Lukas M. Schmidt, G. Kontes, A. Plinge, Christopher Mutschler (2021). Can You Trust Your Autonomous Car? Interpretable and Verifiably Safe Reinforcement Learning. 2021 IEEE Intelligent Vehicles Symposium (IV)
+H. Kress-Gazit (2011). Robot challenges: Toward development of verification and synthesis techniques [from the Guest Editors]. IEEE Robotics Autom. Mag.
+Jayaraj Poroor (2021). Natural Hoare Logic: Towards formal verification of programs from logical forms of natural language specifications. arXiv.org
+R. Ivanov, Taylor J. Carpenter, James Weimer, R. Alur, George Pappas, and 1 more (2020). Verifying the Safety of Autonomous Systems with Neural Network Controllers. ACM Transactions on Embedded Computing Systems
+M. Webster, C. Dixon, M. Fisher, Maha Salem, J. Saunders, and 3 more (2016). Toward Reliable Autonomous Robotic Assistants Through Formal Verification: A Case Study. IEEE Transactions on Human-Machine Systems
+Enrico Marchesini, Luca Marzari, A. Farinelli, Chris Amato (2023). Safe Deep Reinforcement Learning by Verifying Task-Level Properties. Adaptive Agents and Multi-Agent Systems
+Omar El Mellouki, Mohamed Ibn Khedher, M. El-Yacoubi (2023). Abstract Layer for LeakyReLU for Neural Network Verification Based on Abstract Interpretation. IEEE Access
+Ameya Pore, Davide Corsi, Enrico Marchesini, D. Dall’Alba, A. Casals, and 2 more (2021). Safe Reinforcement Learning using Formal Verification for Tissue Retraction in Autonomous Robotic-Assisted Surgery. IEEE/RJS International Conference on Intelligent RObots and Systems
+Jakob Thumm, Christopher Agia, Marco Pavone, Matthias Althoff (2024). Text2Interaction: Establishing Safe and Preferable Human-Robot Interaction. Conference on Robot Learning
+J. Liu, Ziyi Yang, Ifrah Idrees, Sam Liang, Benjamin Schornstein, and 2 more (2023). Lang2LTL: Translating Natural Language Commands to Temporal Robot Task Specification. arXiv.org
+Ryeonggu Kwon, Gihwon Kwon (2023). Safety Constraint-Guided Reinforcement Learning with Linear Temporal Logic. Syst.
+Prithvi Akella, A. Ames (2022). A Barrier-Based Scenario Approach to Verifying Safety-Critical Systems. IEEE Robotics and Automation Letters
+Ananya Rao, Yue Wang (2023). Formal Verification of Autonomous Vehicles: Bridging the Gap between Model-Based Design and Model Checking. SAE technical paper series
+B. Berthomieu, J. Bodeveix, Christelle Chaudet, Silvano Dal-Zilio, M. Filali, and 1 more (2009). Formal Verification of AADL Specifications in the Topcased Environment. International Conference on Reliable Software Technologies
+Johannes Welbl, Po-Sen Huang, Robert Stanforth, Sven Gowal, K. Dvijotham, and 2 more (2020). Towards Verified Robustness under Text Deletion Interventions. International Conference on Learning Representations
+Christian Heinzemann, R. Lange (2018). vTSL - A Formally Verifiable DSL for Specifying Robot Tasks. IEEE/RJS International Conference on Intelligent RObots and Systems
+Davide Corsi, Enrico Marchesini, A. Farinelli (2020). Evaluating the Safety of Deep Reinforcement Learning Models using Semi-Formal Verification. arXiv.org
+Marian Qian, Stefan Mitsch (2023). Reward Shaping from Hybrid Systems Models in Reinforcement Learning. NASA Formal Methods
+Richard Stocker, Louise Dennis, C. Dixon, Michael Fisher (2012). Verifying Brahms Human-Robot Teamwork Models. European Conference on Logics in Artificial Intelligence
+M. Franklin, A. Gabrielian (1989). A transformational method for verifying safety properties in real-time systems. [1989] Proceedings. Real-Time Systems Symposium
+Dionis Totsila, Quentin Rouxel, Jean-Baptiste Mouret, S. Ivaldi (2024). Words2Contact: Identifying Support Contacts from Verbal Instructions Using Foundation Models. IEEE-RAS International Conference on Humanoid Robots
+Haonan Chen, Hao Tan, A. Kuntz, Mohit Bansal, R. Alterovitz (2019). Enabling Robots to Understand Incomplete Natural Language Instructions Using Commonsense Reasoning. IEEE International Conference on Robotics and Automation
+Zhe Hu, Jia Pan, Tingxiang Fan, Ruigang Yang, Dinesh Manocha (2018). Safe Navigation With Human Instructions in Complex Scenes. IEEE Robotics and Automation Letters
+M. Webster, C. Dixon, Michael Fisher, Maha Salem, J. Saunders, and 2 more (2014). Formal Verification of an Autonomous Personal Robotic Assistant. AAAI Spring Symposia
+Nishanth Kumar, Fabio Ramos, Dieter Fox, Caelan Reed Garrett (2024). Open-World Task and Motion Planning via Vision-Language Model Inferred Constraints. arXiv.org
+Chien-Wei Chen, Yi-Huang Chuang, Chun-Hsiang Yang, Min-Fan Ricky Lee (2024). Multimodal Robotic Manipulation Learning. Workshop on Computational Approaches to Code Switching
+Michael Rathmair, Thomas Haspl, T. Komenda, Bernhard Reiterer, M. Hofbaur (2021). A Formal Verification Approach for Robotic Workflows. International Conference on Advanced Robotics
+S. V. Waveren (2022). Leveraging Non-Experts and Formal Methods to Automatically Correct Robot Failures. IEEE/ACM International Conference on Human-Robot Interaction
+Mustafa Adam, Elias E. Hartmark, Tage Andersen, D. A. Anisi, Ana Cavalcanti (2024). Safety assurance of autonomous agricultural robots: from offline model-checking to runtime verification. 2024 IEEE 20th International Conference on Automation Science and Engineering (CASE)
+Yuhao Zhang, Aws Albarghouthi, Loris D'antoni (2024). A One-Layer Decoder-Only Transformer is a Two-Layer RNN: With an Application to Certified Robustness. arXiv.org
+Daniel C.H. Tan, Fernando Acero, Robert McCarthy, D. Kanoulas, Zhibin Li (2023). Your Value Function is a Control Barrier Function
+Zamira Daw, R. Cleaveland, Marcus Vetter (2013). Formal verification of software-based medical devices considering medical guidelines. International Journal of Computer Assisted Radiology and Surgery
+Jun Wang, Guocheng He, Y. Kantaros (2024). Probabilistically Correct Language-Based Multi-Robot Planning Using Conformal Prediction. IEEE Robotics and Automation Letters
+Pierre El Mqirmi, F. Belardinelli, Borja G. Leon (2021). An Abstraction-based Method to Verify Multi-Agent Deep Reinforcement-Learning Behaviours. arXiv.org
+J. S. Park, Biao Jia, Mohit Bansal, Dinesh Manocha (2017). Generating Realtime Motion Plans from Complex Natural Language Commands Using Dynamic Grounding Graphs. arXiv.org
+Carmelo Sferrazza, Dun-Ming Huang, Fangchen Liu, Jongmin Lee, Pieter Abbeel (2024). Body Transformer: Leveraging Robot Embodiment for Policy Learning. Conference on Robot Learning
+M. Saraoglu, Johannes Pintscher, K. Janschek (2022). Designing a Safe Intersection Management Algorithm using Formal Methods. IFAC-PapersOnLine
+Wanjing Huang, Tongjie Pan, Yalan Ye (2025). Graphormer-Guided Task Planning: Beyond Static Rules with LLM Safety Perception. arXiv.org
+Renato Gil Gomes Carvalho, Alcino Cunha, Nuno Macedo, A. Santos (2020). Verification of system-wide safety properties of ROS applications. IEEE/RJS International Conference on Intelligent RObots and Systems
+Aditya Parameshwaran, Yue Wang (2025). Scalable and Interpretable Verification of Image-based Neural Network Controllers for Autonomous Vehicles. International Conference on Cyber-Physical Systems
+Xiaohong Chen, Juan Zhang, Zhi Jin, Min Zhang, Tong Li, and 2 more (2023). Empowering Domain Experts With Formal Methods for Consistency Verification of Safety Requirements. IEEE transactions on intelligent transportation systems (Print)
+Takéhiko Nakama, E. Ruspini (2013). Generalizing Precisiated Natural Language: A Formal Logic as a Precisiation Language. EUSFLAT Conf.
+Manan Tayal, Aditya Singh, Pushpak Jagtap, Shishir N. Y. Kolathaya (2024). Semi-Supervised Safe Visuomotor Policy Synthesis using Barrier Certificates. arXiv.org
+Chengwu Liu, Ye Yuan, Yichun Yin, Yan Xu, Xin Xu, and 5 more (2025). Safe: Enhancing Mathematical Reasoning in Large Language Models via Retrospective Step-aware Formal Verification. Annual Meeting of the Association for Computational Linguistics
+Pengxiang Ding, Han Zhao, Zhitao Wang, Zhenyu Wei, Shangke Lyu, and 1 more (2023). QUAR-VLA: Vision-Language-Action Model for Quadruped Robots. European Conference on Computer Vision
+Simone Colombani, Dimitri Ognibene, Giuseppe Boccignone (2024). One to rule them all: natural language to bind communication, perception and action. AI4CC-IPS-RCRA-SPIRIT@AI*IA
+Puja Chaudhury, Alexander Estornell, Michael Everett (2025). Learning Verifiable Control Policies Using Relaxed Verification. arXiv.org
+Zhenjiang Mao, Siqi Dai, Yuang Geng, Ivan Ruchkin (2024). Zero-shot Safety Prediction for Autonomous Robots with Foundation World Models. arXiv.org
+Kumar Manas, Stefan Zwicklbauer, Adrian Paschke (2024). CoT-TL: Low-Resource Temporal Knowledge Representation of Planning Instructions Using Chain-of-Thought Reasoning. IEEE/RJS International Conference on Intelligent RObots and Systems
+Haitham Khedr, James Ferlez, Yasser Shoukry (2020). Effective Formal Verification of Neural Networks using the Geometry of Linear Regions. arXiv.org
+Zitong Bo, Yue Hu, Jinming Ma, Mingliang Zhou, Junhui Yin, and 5 more (2025). Reinforced Embodied Planning with Verifiable Reward for Real-World Robotic Manipulation
+Sorin Adam, M. Larsen, Kjeld Jensen, U. Schultz (2016). Rule-based Dynamic Safety Monitoring for Mobile Robots
+Ioanna Giorgi, A. Cangelosi, G. Masala (2021). Learning Actions From Natural Language Instructions Using an ON-World Embodied Cognitive Architecture. Frontiers in Neurorobotics
+Yong Qi, Gabriel Kyebambo, Siyuan Xie, Wei Shen, Shenghui Wang, and 4 more (2024). Safety Control of Service Robots with LLMs and Embodied Knowledge Graphs. arXiv.org
+Hanna Krasowski, Prithvi Akella, A. Ames, M. Althoff (2022). Verifiably Safe Reinforcement Learning with Probabilistic Guarantees via Temporal Logic. arXiv.org
+Zikang Xiong, Joe Eappen, A. H. Qureshi, S. Jagannathan (2022). Model-free Neural Lyapunov Control for Safe Robot Navigation. IEEE/RJS International Conference on Intelligent RObots and Systems
+Jaymari Chua, Chen Wang, Lina Yao (2025). Learning Natural Language Constraints for Safe Reinforcement Learning of Language Agents. arXiv.org
+Junhui Huang, Yuhe Gong, Changsheng Li, Xingguang Duan, L. Figueredo (2025). ZLATTE: A Geometry-Aware, Learning-Free Framework for Language-Driven Trajectory Reshaping in Human-Robot Interaction
+Yasmin Rafiq, Gricel V'azquez, R. Calinescu, Sanja Dogramadzi, Robert M. Hierons (2025). Symbolic Runtime Verification and Adaptive Decision-Making for Robot-Assisted Dressing. arXiv.org
+Jagadish Shivamurthy, Deepti Vidyarthi, Tarun Uppal (2024). Natural Language Processing based Auto Generation of Proof Obligations for Formal Verification of Control Requirements in Safety-Critical Systems. IFAC-PapersOnLine
+Oliver Schon, Zhengang Zhong, S. Soudjani (2024). Data-Driven Distributionally Robust Safety Verification Using Barrier Certificates and Conditional Mean Embeddings. American Control Conference
+Aaron Pereira, M. Althoff (2015). Safety control of robots under Computed Torque control using reachable sets. IEEE International Conference on Robotics and Automation
+Steven Carr, N. Jansen, U. Topcu (2021). Task-Aware Verifiable RNN-Based Policies for Partially Observable Markov Decision Processes. Journal of Artificial Intelligence Research
+Maximilian Tolle, Theo Gruner, Daniel Palenicek, Jonas Gunster, Puze Liu, and 3 more (2025). Towards Safe Robot Foundation Models. arXiv.org
+Shaojun Xu, Xusheng Luo, Yutong Huang, Letian Leng, Ruixuan Liu, and 1 more (2024). Nl2Hltl2Plan: Scaling Up Natural Language Understanding for Multi-Robots Through Hierarchical Temporal Logic Task Specifications. IEEE Robotics and Automation Letters
+Sitar Kortik, Tejas Kumar Shastha (2021). Formal Verification of ROS Based Systems Using a Linear Logic Theorem Prover. IEEE International Conference on Robotics and Automation
+Mohammadhosein Hasanbeig, D. Kroening, A. Abate (2019). Towards Verifiable and Safe Model-Free Reinforcement Learning. OVERLAY@AI*IA
+Julien Alexandre Dit Sandretto, Alexandre Chapoutot, C. Garion, X. Thirioux, Ghiles Ziat (2021). Constraint-based Verification of Formation Control. IEEE Conference on Decision and Control
+A. Holt (1999). Formal verification with natural language specifications: guidelines, experiments and lessons so far
+Yihao Zhang, Zeming Wei, Meng Sun (2024). Automata Extraction from Transformers. arXiv.org
+Behrad Rabiei, Mahesh Kumar A.R., Zhirui Dai, Surya L.S.R. Pilla, Qiyue Dong, and 1 more (2025). LTLCodeGen: Code Generation of Syntactically Correct Temporal Logic for Robot Task Planning. arXiv.org
+Sai Shankar Narasimhan, Sharachchandra Bhat, Sandeep P. Chinchali (2023). Safe Networked Robotics via Formal Verification. arXiv.org
+Nikos Aréchiga, B. Krogh (2014). Using verified control envelopes for safe controller design. American Control Conference
+Eman Al-qtiemat, S. Srinivasan, Mohana Asha, Latha Dubasi, Sana Shuja (2018). A Methodology for Synthesizing Formal Speciﬁcation Models From Requirements for Reﬁnement-based Object Code Veriﬁcation
+M. Foughali, B. Berthomieu, Silvano Dal-Zilio, F. Ingrand, A. Mallet (2016). Model Checking Real-Time Properties on the Functional Layer of Autonomous Robots. IEEE International Conference on Formal Engineering Methods
+M. Ozkan, Zekeriyya Demirci, Özge Aslan, A. Yazıcı (2023). Safety Verification of Multiple Industrial Robot Manipulators with Path Conflicts Using Model Checking. Machines
+Philip Quirke, Clement Neo, Fazl Barez (2024). Arithmetic in Transformers Explained
+Chih-Hong Cheng, Chung-Hao Huang, Thomas Brunner, V. Hashemi (2019). Towards Safety Verification of Direct Perception Neural Networks. Design, Automation and Test in Europe
+Livia Lestingi, M. Askarpour, M. Bersani, Matteo Rossi (2021). A Deployment Framework for Formally Verified Human-Robot Interactions. IEEE Access
+Devesh Nath, Haoran Yin, Glen Chou (2025). Formal Safety Verification and Refinement for Generative Motion Planners via Certified Local Stabilization. arXiv.org
+T. Vo, M. Vu, Baoru Huang, An Vuong, Ngan Le, and 2 more (2024). Language-driven Grasp Detection with Mask-guided Attention. IEEE/RJS International Conference on Intelligent RObots and Systems
+Jianke Zhang, Yanjiang Guo, Xiaoyu Chen, Yen-Jen Wang, Yucheng Hu, and 2 more (2024). HiRT: Enhancing Robotic Control with Hierarchical Robot Transformers. Conference on Robot Learning
+Y. Xiong, Dihua Zhai, Sihua Zhang, Yuanqing Xia (2022). Multi-Layered Safety-Critical Control Design for Robotic Systems via Control Barrier Functions. Cybersecurity and Cyberforensics Conference
+Ziyan Wang, Meng Fang, Tristan Tomilin, Fei Fang, Yali Du (2024). Safe Multi-agent Reinforcement Learning with Natural Language Constraints. arXiv.org
+Jan Vermaelen, Tom Holvoet (2024). Advancing Safe Robot Behavior by Formalizing STPA with Tumato. International Conference on System Reliability and Safety
+M. Foughali, F. Ingrand, C. Seceleanu (2019). Statistical Model Checking of Complex Robotic Systems. SPIN
+Julia M. B. Braman, R. Murray, D. Wagner (2007). Safety verification of a fault tolerant reconfigurable autonomous goal-based robotic control system. 2007 IEEE/RSJ International Conference on Intelligent Robots and Systems
+Alexander Broad, Jacob Arkin, Nathan D. Ratliff, T. Howard, B. Argall (2017). Real-time natural language corrections for assistive robotic manipulators. Int. J. Robotics Res.
+Gavin Suddrey, Christopher F. Lehnert, M. Eich, F. Maire, Jonathan M. Roberts (2017). Teaching Robots Generalizable Hierarchical Tasks Through Natural Language Instruction. IEEE Robotics and Automation Letters
+J. Kim, Wenhao Yu, Yash Kothari, Jie Tan, Greg Turk, and 1 more (2023). Transforming a Quadruped into a Guide Robot for the Visually Impaired: Formalizing Wayfinding, Interaction Modeling, and Safety Mechanism. Conference on Robot Learning
+Iat Tou Leong, R. Barbosa (2023). Translating Natural Language Requirements to Formal Specifications: A Study on GPT and Symbolic NLP. 2023 53rd Annual IEEE/IFIP International Conference on Dependable Systems and Networks Workshops (DSN-W)
+Kaiqu Liang, Zixu Zhang, J. F. Fisac (2024). Introspective Planning: Guiding Language-Enabled Agents to Refine Their Own Uncertainty. arXiv.org
+Y. Emam, Paul Glotfelter, Z. Kira, M. Egerstedt (2021). Safe Model-Based Reinforcement Learning Using Robust Control Barrier Functions. arXiv.org
+Pranav Doma, Aliasghar Arab, Xuesu Xiao (2024). LLM-Enhanced Path Planning: Safe and Efficient Autonomous Navigation with Instructional Inputs. arXiv.org
+Konstantinos Mokos, G. Meditskos, P. Katsaros, Nick Bassiliades, Vangelis Vasiliades (2010). Ontology-Based Model Driven Engineering for Safety Verification. EUROMICRO Conference on Software Engineering and Advanced Applications
+Roma Patel (2019). Learning to Ground Language to Temporal Logical Form
+J. Rosser, Jacob Arkin, Siddharth Patki, T. Howard (2020). NATURAL LANGUAGE INTERACTION WITH SYNTHESIS BASED CONTROL FOR SIMULATED FREE-FLYING ROBOTS
+P. A. Alamdari, Guy Avni, T. Henzinger, Anna Lukina (2020). Formal Methods with a Touch of Magic. Formal Methods in Computer-Aided Design
+Itay Cohen, Doron A. Peled (2023). End-to-End AI Generated Runtime Verification from Natural Language Specification. AISoLA
+Aishan Liu, Zonghao Ying, Le Wang, Junjie Mu, Jinyang Guo, and 6 more (2025). AGENTSAFE: Benchmarking the Safety of Embodied Agents on Hazardous Instructions. arXiv.org
+Thais Campos, Adam Pacheck, Guy Hoffman, H. Kress-Gazit (2019). SMT-Based Control and Feedback for Social Navigation. IEEE International Conference on Robotics and Automation
+Diego Martinez-Baselga, O. D. Groot, Luzia Knoedler, Javier Alonso-Mora, L. Riazuelo, and 1 more (2024). Hey Robot! Personalizing Robot Navigation Through Model Predictive Control with a Large Language Model. IEEE International Conference on Robotics and Automation
+Livia Lestingi, M. Askarpour, M. Bersani, M. Rossi (2020). Formal Verification of Human-Robot Interaction in Healthcare Scenarios. IEEE International Conference on Software Engineering and Formal Methods
+Yunhao Yang, N. Bhatt, Tyler Ingebrand, William Ward, Steven Carr, and 2 more (2023). Fine-Tuning Language Models Using Formal Methods Feedback. Conference on Machine Learning and Systems
+Daniel Ekpo, Mara Levy, Saksham Suri, Chuong Huynh, Abhinav Shrivastava (2024). VeriGraph: Scene Graphs for Execution Verifiable Robot Planning. arXiv.org
+Harleen Hanspal, A. Lomuscio (2023). Efficient Verification of Neural Networks Against LVM-Based Specifications. Computer Vision and Pattern Recognition
+Hao Liu, Lisa Lee, Kimin Lee, P. Abbeel (2023). InstructRL: Simple yet Effective Instruction-Following Agents with Multimodal Transformer
+Yedi Zhang, Yufan Cai, Xinyue Zuo, Xiaokun Luan, Kailong Wang, and 7 more (2024). The Fusion of Large Language Models and Formal Methods for Trustworthy AI Agents: A Roadmap. arXiv.org
+Guy Scher, Sadra Sadraddini, Ariel Yadin, H. Kress-Gazit (2023). Ensuring Reliable Robot Task Performance through Probabilistic Rare-Event Verification and Synthesis. arXiv.org
+Pranav Kak, Sushma Jain (2024). Embodied Reasoning with Self-Feedback. IEEE International Conference on Electronics, Computing and Communication Technologies
+Lavindra de Silva, Rongjie Yan, F. Ingrand, R. Alami, S. Bensalem (2015). A Verifiable and Correct-by-Construction Controller for Robots in Human Environments. IEEE/ACM International Conference on Human-Robot Interaction
+Adithya T. Praveen, Anubhav Gupta, S. Bhattacharyya, Raja Muthalagu (2022). Assuring Behavior of Multirobot Autonomous Systems With Translation From Formal Verification to ROS Simulation. IEEE Systems Journal
+Jiawei Chen, José Luiz Vargas de Mendonça, S. Jalili, Bereket Ayele, Bereket Ngussie Bekele, and 5 more (2022). Synchronous Programming and Refinement Types in Robotics: From Verification to Implementation. International Workshop on Formal Techniques for Safety-Critical Systems
+A. Schmaltz, Danielle Rasooly (2022). Introspection, Updatability, and Uncertainty Quantiﬁcation with Transformers: Concrete Methods for AI Safety
+Paul Gainer, C. Dixon, K. Dautenhahn, Michael Fisher, U. Hustadt, and 2 more (2017). CRutoN: Automatic Verification of a Robotic Assistant's Behaviours. FMICS-AVoCS
+Yunhao Yang, Cyrus Neary, U. Topcu (2023). Multimodal Pretrained Models for Verifiable Sequential Decision-Making: Planning, Grounding, and Perception. Adaptive Agents and Multi-Agent Systems
+Sven Linker (2017). Hybrid Multi-Lane Spatial Logic. Arch. Formal Proofs
+Guy Scher, Sadra Sadraddini, Russ Tedrake, H. Kress-Gazit (2022). Elliptical Slice Sampling for Probabilistic Verification of Stochastic Systems with Signal Temporal Logic Specifications. International Conference on Hybrid Systems: Computation and Control
+Robin Young (2025). On the Computational, Informational, and Physical Foundations for AI Safety. Proceedings of the AAAI/ACM Conference on AI, Ethics, and Society
+D. Lyons, R. Arkin, P. Nirmal, Shu Jiang, Tsung-Ming Liu, and 1 more (2013). Getting it right the first time: Robot mission guarantees in the presence of uncertainty. 2013 IEEE/RSJ International Conference on Intelligent Robots and Systems
+Zhirong Luan, Yujun Lai, Rundong Huang, Shuanghao Bai, Yuedi Zhang, and 2 more (2024). Enhancing Robot Task Planning and Execution through Multi-Layer Large Language Models. Italian National Conference on Sensors
+Mani Amani, Reza Akhavian (2025). Digital Twin-Guided Robot Path Planning: A Beta-Bernoulli Fusion with Large Language Model as a Sensor. arXiv.org
+Ashkan B. Jeddi, Nariman L. Dehghani, A. Shafieezadeh (2023). Memory-Augmented Lyapunov-Based Safe Reinforcement Learning: End-to-End Safety Under Uncertainty. IEEE Transactions on Artificial Intelligence
+Javier Chiyah-Garcia, José Lopes, H. Hastie (2020). Natural Language Interaction to Facilitate Mental Models of Remote Robots. arXiv.org
+Kumar Manas, Stefan Zwicklbauer, Adrian Paschke (2024). TR2MTL: LLM based framework for Metric Temporal Logic Formalization of Traffic Rules. 2024 IEEE Intelligent Vehicles Symposium (IV)
+Kyoungho Lee, Eunji Im, Kyunghoon Cho (2024). Mission-Conditioned Path Planning with Transformer Variational Autoencoder. Electronics
+Xiao Li, G. Rosman, Igor Gilitschenski, Jonathan A. DeCastro, C. Vasile, and 2 more (2020). Differentiable Logic Layer for Rule Guided Trajectory Prediction. Conference on Robot Learning
+Zhuoling Li, Liangliang Ren, Jinrong Yang, Yong Zhao, Xiaoyang Wu, and 3 more (2024). VIP: Vision Instructed Pre-training for Robotic Manipulation
+Eshita Shukla, Quinn Thibeault, Giulia Pedrielli (2025). A gray box approach for Large Language Model-guided Natural Language to Temporal Logic Automatic Translation. International Conference on Cyber-Physical Systems
+L. Aiello, A. Cesta, E. Giunchiglia, P. Traverso (2001). Merging Planning and Veriﬁcation Techniques for “Safe Planning” in Space Robotics
+Priyam Parashar, Jay Vakil, Sam Powers, Chris Paxton (2023). Spatial-Language Attention Policies for Efficient Robot Learning. arXiv.org
+Ronen Nir, E. Karpas (2019). Automated Verification of Social Laws for Continuous Time Multi-Robot Systems. AAAI Conference on Artificial Intelligence
+Mario Gleirscher, R. Calinescu, James A. Douthwaite, Benjamin Lesage, Colin Paterson, and 3 more (2021). Verified Synthesis of Optimal Safety Controllers for Human-Robot Collaboration. Science of Computer Programming
+Zikang Xiong, S. Jagannathan (2021). Scalable Synthesis of Verified Controllers in Deep Reinforcement Learning. arXiv.org
+Ozan Arkan Can, Pedro Zuidberg Dos Martires, A. Persson, Julian Gaal, A. Loutfi, and 3 more (2019). Learning from Implicit Information in Natural Language Instructions for Robotic Manipulations. Proceedings of the Combined Workshop on Spatial Language Understanding (
+Rohan Thakker, Adarsh Patnaik, Vince Kurtz, Jonas Frey, Jonathan Becktor, and 8 more (2025). Risk-Guided Diffusion: Toward Deploying Robot Foundation Models in Space, Where Failure Is Not An Option. arXiv.org
+Hangtao Zhang, Chenyu Zhu, Xianlong Wang, Ziqi Zhou, Changgan Yin, and 7 more (2024). BadRobot: Jailbreaking Embodied LLMs in the Physical World
+Wei Xiao, Tsun-Hsuan Wang, Daniela Rus (2024). ABNet: Attention BarrierNet for Safe and Scalable Robot Learning. arXiv.org
+Sai Shankar Narasimhan, Sharachchandra Bhat, Sandeep P. Chinchali (2023). Safe Networked Robotics With Probabilistic Verification. IEEE Robotics and Automation Letters
+Marco Casadio, Luca Arnaboldi, M. Daggitt, Omri Isac, Tanvi Dinkar, and 3 more (2023). ANTONIO: Towards a Systematic Method of Generating NLP Benchmarks for Verification. FoMLAS@CAV
+A. Saberi, J. F. Groote, S. Keshishzadeh (2013). Analysis of Path Planning Algorithms: a Formal Verification-based Approach. European Conference on Artificial Life
+Changjie Wang, Mariano Scazzariello, Marco Chiesa (2025). From Scientific Texts to Verifiable Code: Automating the Process with Transformers. 2025 IEEE/ACM International Workshop on Large Language Models for Code (LLM4Code)
+Kyon-Mo Yang, Kap-Ho Seo, S. Kang, Yoonseob Lim (2020). Robot Plan Model Generation and Execution with Natural Language Interface*. IEEE International Conference on Robotics and Automation
+Souradeep Dutta, Michele Caprio, Vivian Lin, Matthew Cleaveland, Kuk Jin Jang, and 3 more (2023). Distributionally Robust Statistical Verification with Imprecise Neural Networks. International Conference on Hybrid Systems: Computation and Control
+Debargha Ganguly, Srinivasan Iyengar, Vipin Chaudhary, S. Kalyanaraman (2024). Proof of Thought : Neurosymbolic Program Synthesis allows Robust and Interpretable Reasoning. arXiv.org
+Rafael Rodrigues da Silva, B. Wu, Hai Lin (2016). Formal design of robot Integrated Task and Motion Planning. IEEE Conference on Decision and Control
+Lukas Koller, Tobias Ladner, Matthias Althoff (2024). Set-Based Training for Neural Network Verification. Trans. Mach. Learn. Res.
+Joaquín López, A. Santana-Alonso, M. Díaz-Cacho (2019). Formal Verification for Task Description Languages. A Petri Net Approach. Italian National Conference on Sensors
+Ammar N. Abbas, Csaba Beleznai (2024). TalkWithMachines: Enhancing Human-Robot Interaction Through Large/Vision Language Models. International Conference on Robotic Computing
+Yixuan Wang, Chao Huang, Zhaoran Wang, Zhilu Wang, Qi Zhu (2021). Verification in the Loop: Correct-by-Construction Control Learning with Reach-avoid Guarantees. arXiv.org
+Borong Zhang, Yuhao Zhang, Jiaming Ji, Yingshan Lei, Josef Dai, and 2 more (2025). SafeVLA: Towards Safety Alignment of Vision-Language-Action Model via Safe Reinforcement Learning. arXiv.org
+Yixin Sun, M. Grüninger (2020). Open the Pod Bay Door: Using Ontology to Understand Instructions. Joint Ontology Workshops
+Byron Heersink, Pape Sylla, Michael A. Warren (2021). Formal verification of octorotor flight envelope using barrier functions and SMT solving. arXiv.org
+Dan BW Choe, Sundhar Vinodh Sangeetha, Steven Emanuel, Chih-Yuan Chiu, Samuel Coogan, and 1 more (2025). Seeing, Saying, Solving: An LLM-to-TL Framework for Cooperative Robots. arXiv.org
+Puze Liu, Haitham Bou-Ammar, Jan Peters, Davide Tateo (2024). Safe Reinforcement Learning on the Constraint Manifold: Theory and Applications. IEEE Transactions on robotics
+Panagiotis Kouvaros, Francesco Leofante, Blake Edwards, Calvin Chung, D. Margineantu, and 1 more (2023). Verification of Semantic Key Point Detection for Aircraft Pose Estimation. International Conference on Principles of Knowledge Representation and Reasoning
+Mustafa Adam, D. A. Anisi, Pedro Ribeiro (2025). A Verification Methodology for Safety Assurance of Robotic Autonomous Systems. Towards Autonomous Robotic Systems
+Thorsten Ropertz, K. Berns, Xian Li, K. Schneider (2016). Verification of Behavior-Based Control Systems in their Physical Environment. Methoden und Beschreibungssprachen zur Modellierung und Verifikation von Schaltungen und Systemen
+Prithvi Akella, M. Ahmadi, R. Murray, A. Ames (2020). Formal Test Synthesis for Safety-Critical Autonomous Systems based on Control Barrier Functions. IEEE Conference on Decision and Control
+Aladin Djuhera, Amin Seffo, Masataro Asai, Holger Boche (2025). "Don't Do That!": Guiding Embodied Systems through Large Language Model-based Constraint Generation. arXiv.org
+Stefan Morar, Adrian Groza, M. Pomarlan (2023). Formalising Natural Language Quantifiers for Human-Robot Interactions. arXiv.org
+Xuyang Zhang, Ziyang Feng, Quecheng Qiu, Yu'an Chen, Bei Hua, and 1 more (2024). NaviFormer: A Data-Driven Robot Navigation Approach via Sequence Modeling and Path Planning with Safety Verification. IEEE International Conference on Robotics and Automation
+Yuchen Mao, Tianci Zhang, Xu Cao, Zhongyao Chen, Xinkai Liang, and 2 more (2024). NL2STL: Transformation from Logic Natural Language to Signal Temporal Logics using Llama2. 2024 IEEE International Conference on Cybernetics and Intelligent Systems (CIS) and IEEE International Conference on Robotics, Automation and Mechatronics (RAM)
+Michele Colledanchise, G. Cicala, Daniele E. Domenichelli, L. Natale, A. Tacchella (2021). Formalizing the Execution Context of Behavior Trees for Runtime Verification of Deliberative Policies. IEEE/RJS International Conference on Intelligent RObots and Systems
+Jianyou Wang, †. YongceLi, ‡. WeiliCao, Yang Yue (2023). A Scalable and Modular Framework for Training Provably Robust Large Transformer Models via Neural Network Duality
+W. Fokkink, R. V. Glabbeek, M. Kwiatkowska (2019). 30th International Conference on Concurrency Theory, CONCUR 2019, August 27-30, 2019, Amsterdam, the Netherlands. International Conference on Concurrency Theory
+Yuekang Li, Stefan Zetzsche, Siva Somayyajula (2025). Dafny as Verification-Aware Intermediate Language for Code Generation. arXiv.org
+Matthias Cosler, Frederik Schmitt, Christopher Hahn, B. Finkbeiner (2023). Iterative Circuit Repair Against Formal Specifications. International Conference on Learning Representations
+Matteo Tadiello, E. Troubitsyna (2022). Verifying Safety of Behaviour Trees in Event-B. FMAS/ASYDE@SEFM
+Berk Tosun, Evren Samur (2023). Modular Safety-Critical Control of Legged Robots. arXiv.org
+M. Farrell, R. C. Cardoso, Louise Dennis, C. Dixon, M. Fisher, and 4 more (2019). Modular Verification of Autonomous Space Robotics. arXiv.org
+Amit Parekh, Nikolas Vitsakis, Alessandro Suglia, Ioannis Konstas (2024). Investigating the Role of Instruction Variety and Task Difficulty in Robotic Manipulation Tasks. Conference on Empirical Methods in Natural Language Processing
+Abhimanyu Kapuria, Daniel G. Cole (2024). Formal Verification of a Nuclear Plant Thermal Dispatch Operation Using System Decomposition. International Conference on Trust, Privacy and Security in Intelligent Systems and Applications
+L. Dust, Rong Gu, Saad Mubeen, Mikael Ekström, C. Seceleanu (2025). A model-based approach to automation of formal verification of ROS 2-based systems. Frontiers Robotics AI
+Julia M. B. Braman, R. Murray, M. Ingham (2007). Verification Procedure for Generalized Goal-based Control Programs
+Colin S. Gordon, Sergey Matskevich (2023). Trustworthy Formal Natural Language Specifications. SIGPLAN symposium on New ideas, new paradigms, and reflections on programming and software
+Robert Reed, Hanspeter Schaub, Morteza Lahijanian (2024). Shielded Deep Reinforcement Learning for Complex Spacecraft Tasking. American Control Conference
+Sydney M. Katz, Kyle D. Julian, Christopher A. Strong, Mykel J. Kochenderfer (2021). Generating probabilistic safety guarantees for neural network controllers. Machine-mediated learning
+Vasileios Manginas, Nikolaos Manginas, Edward Stevinson, Sherwin Varghese, Nikos Katzouris, and 2 more (2025). A Scalable Approach to Probabilistic Neuro-Symbolic Verification. arXiv.org
+Daniel C.H. Tan, Fernando Acero, Robert McCarthy, D. Kanoulas, Zhibin Li (2023). Value Functions are Control Barrier Functions: Verification of Safe Policies using Control Theory. arXiv.org
+Huan Bui, Harper Lienerth, Chenglong Fu, Meera Sridhar (2024). Poster: TAPChecker: Model Checking in Trigger-Action Rules Generation Using Large Language Models. Conference on Computer and Communications Security
+Iury Cleveston, Alana de Santana Correia, Paula D. P. Costa, Ricardo R. Gudwin, A. S. Simões, and 1 more (2025). InstructRobot: A Model-Free Framework for Mapping Natural Language Instructions into Robot Motion. arXiv.org
+N. Jansen (2023). Intelligent and Dependable Decision-Making Under Uncertainty. World Congress on Formal Methods
+J-Anne Yow, N. P. Garg, Manoj Ramanathan, Wei Tech Ang (2024). ExTraCT - Explainable Trajectory Corrections from language inputs using Textual description of features. arXiv.org
+Manan Tayal, Aditya Singh, Pushpak Jagtap, Shishir N. Y. Kolathaya (2025). CP-NCBF: A Conformal Prediction-based Approach to Synthesize Verified Neural Control Barrier Functions. arXiv.org
+Yasmine Assioua, R. Ameur-Boulifa, R. Pacalet, Patricia Guitton‐Ouhamou (2023). Early Validation of Functional Requirements. INSIGHT
+P. Sermanet, Anirudha Majumdar, Alex Irpan, Dmitry Kalashnikov, Vikas Sindhwani (2025). Generating Robot Constitutions & Benchmarks for Semantic Safety. arXiv.org
+K. Majd, Geoffrey Clark, Tanmay Khandait, Siyu Zhou, S. Sankaranarayanan, and 2 more (2023). Certifiably-correct Control Policies for Safe Learning and Adaptation in Assistive Robotics. arXiv.org
+Prithvi Akella, Ugo Rosolia, Andrew W. Singletary, A. Ames (2020). Formal Verification of Safety Critical Autonomous Systems via Bayesian Optimization. arXiv.org
+Christoph Luckeneder, Ralph Hoch, H. Kaindl (2025). Structural Abstraction and Selective Refinement for Formal Verification. arXiv.org
+William English, Dominic Simon, Rickard Ewetz, Sumit Kumar Jha (2024). NSP: A Neuro-Symbolic Natural Language Navigational Planner. International Conference on Machine Learning and Applications
+A. Hosseini, T. Sauter, Wolfgang Kastner (2023). Formal Verification of Safety and Security Properties in Industry 4.0 Applications. IEEE International Conference on Emerging Technologies and Factory Automation
+Parv Kapoor, Abigail Hammer, Ashish Kapoor, Karen Leung, Eunsuk Kang (2025). Pretrained Embeddings as a Behavior Specification Mechanism. arXiv.org
+Alexander Estornell, Leonard Jung, Michael Everett (2025). Verification of Visual Controllers via Compositional Geometric Transformations. arXiv.org
+Eleanor Quint, Dong Xu, Haluk Dogan, Zeynep Hakguder, Stephen Scott, and 1 more (2019). Formal Language Constraints for Markov Decision Processes. arXiv.org
+J. Styrud, Matteo Iovino, Mikael Norrlöf, Mårten Björkman, Christian Smith (2024). Automatic Behavior Tree Expansion with LLMs for Robotic Manipulation. IEEE International Conference on Robotics and Automation
+Matt Luckcuck, M. Farrell (2020). Proceedings Second Workshop on Formal Methods for Autonomous Systems. Electronic Proceedings in Theoretical Computer Science
+Nikolaos Kekatos (2018). Formal Verification of Cyber-Physical Systems in the Industrial Model-Based Design Process. (Vérification formelle des systèmes cyber-physiques dans le processus industriel de la conception basée sur modèle)
+Nils Blank, Moritz Reuss, Marcel Rühle, Ömer Erdinç Yagmurlu, Fabian Wenzel, and 2 more (2024). Scaling Robot Policy Learning via Zero-Shot Labeling with Foundation Models. Conference on Robot Learning
+Davide Corsi, Enrico Marchesini, A. Farinelli (2020). Formal Analysis of Deep Decision-Making Models for Aquatic Navigation
+Stefan Mitsch, Jan-David Quesel, André Platzer (2014). From Safety to Guilty & from Liveness to Niceness
+A. Murugesan, M. Moghadamfalahi, Arunabh Chattopadhyay (2019). Formal Methods Assisted Training of Safe Reinforcement Learning Agents. NASA Formal Methods
+Ana Davila, Jacinto Colan, Yasuhisa Hasegawa (2025). LLM-based ambiguity detection in natural language instructions for collaborative surgical robots. arXiv.org
+Stefano Spellini, M. Lora, Sudipta Chattopadhyay, F. Fummi (2018). Introducing assume-guarantee contracts for verifying robotic applications: work-in-progress. International Conference on Hardware/Software Codesign and System Synthesis
+Tim Meywerk, Marcel Walter, V. Herdt, Jan Kleinekathöfer, Daniel Große, and 1 more (2020). Verifying Safety Properties of Robotic Plans Operating in Real-World Environments via Logic-Based Environment Modeling. Leveraging Applications of Formal Methods
+Siddharth Karamcheti, Raj Palleti, Yuchen Cui, Percy Liang, Dorsa Sadigh (2022). Shared Autonomy for Robotic Manipulation with Language Corrections
+C. D. Hromei, D. Croce, Roberto Basili (2023). Grounding End-to-End Pre-trained architectures for Semantic Role Labeling in multiple languages. Intelligenza Artificiale
+S. Bhattacharyya, T. Eskridge, N. Neogi, Marco M. Carvalho, Milton Stafford (2018). Formal Assurance for Cooperative Intelligent Autonomous Agents. NASA Formal Methods
+Daniel Mendoza, Christopher Hahn, Caroline Trippel (2024). Translating Natural Language to Temporal Logics with Large Language Models and Model Checkers. Formal Methods in Computer-Aided Design
+Yvonne Murray, D. A. Anisi, Martin Sirevåg, P. Ribeiro, Rabah Saleh Hagag (2020). Safety Assurance of a High Voltage Controller for an Industrial Robotic System. Brazilian Symposium on Formal Methods
+Sabit Hassan, Hye-Young Chung, Xiang Zhi Tan, Malihe Alikhani (2024). Coherence-Driven Multimodal Safety Dialogue with Active Learning for Embodied Agents. Adaptive Agents and Multi-Agent Systems
+Nandith Narayan, Parth Ganeriwala, Randolph M. Jones, M. Matessa, S. Bhattacharyya, and 3 more (2023). Assuring Learning-Enabled Increasingly Autonomous Systems*. IEEE Systems Conference
+Tom Hirshberg, Sai H. Vemprala, Ashish Kapoor (2020). Safety Considerations in Deep Control Policies with Safety Barrier Certificates Under Uncertainty. IEEE/RJS International Conference on Intelligent RObots and Systems
+A. Busboom, S. Schuler, A. Walsch (2017). formalSpec - Semi-Automatic Formalization of System Requirements for Formal Verification. ARCH@CPSWeek
+Kiwan Wong, Maximilian Stölzle, Wei Xiao, C. D. Santina, Daniela Rus, and 1 more (2025). Contact-Aware Safety in Soft Robots Using High-Order Control Barrier and Lyapunov Functions. IEEE Robotics and Automation Letters
+William Xie, Max Conway, Yutong Zhang, N. Correll (2025). Unfettered Forceful Skill Acquisition with Physical Reasoning and Coordinate Frame Labeling. arXiv.org
+Jonas Guenster, Puze Liu, Jan Peters, Davide Tateo (2024). Handling Long-Term Safety and Uncertainty in Safe Reinforcement Learning. Conference on Robot Learning
+Hsuan-Cheng Liao, Chih-Hong Cheng, M. Kneissl, Alois Knoll (2022). Robustness Verification for Attention Networks using Mixed Integer Programming. arXiv.org
+Ahmed Nasir, Abdelhafid Zenati (2025). A Dynamical Systems Framework for Reinforcement Learning Safety and Robustness Verification. arXiv.org
+Zirui Song, Guangxian Ouyang, Mingzhe Li, Yuheng Ji, Chenxi Wang, and 8 more (2025). ManipLVM-R1: Reinforcement Learning for Reasoning in Embodied Manipulation with Large Vision-Language Models. arXiv.org
+Liuyi Wang, Jiagui Tang, Zongtao He, Ronghao Dang, Chengju Liu, and 1 more (2024). Enhanced Language-guided Robot Navigation with Panoramic Semantic Depth Perception and Cross-modal Fusion. IEEE/RJS International Conference on Intelligent RObots and Systems
+Chen Ding, Cheng Li, Guiling Wu, Liang Qian, Ruifeng Liu, and 1 more (2025). SC-RAG-CoT: An Optimization Method for Robotic Instruction Generation. 2025 International Conference on Mechatronics, Robotics, and Artificial Intelligence (MRAI)
+Akkamahadevi Hanni, Andrew Boateng, Yu Zhang (2023). Safe Explicable Robot Planning. arXiv.org
+Paula Herber, Timm Liebrenz, Julius Adelt (2021). Combining Forces: How to Formally Verify Informally Defined Embedded Systems. World Congress on Formal Methods
+Youssef Mahmoud Youssef, Teena Hassan (2024). Towards Multimodal Co-Construction of Explanations for Robots: Combining Inductive Logic Programming and Large Language Models to Explain Robot Faults. ICMI Companion
+Arshad Beg, Diarmuid O'Donoghue, Rosemary Monahan (2025). Leveraging LLMs for Formal Software Requirements - Challenges and Prospects. arXiv.org
+A. Lee, H. Myung (2022). Natural Language Representation as Features for Place Recognition. 2022 19th International Conference on Ubiquitous Robots (UR)
+Mahdi Kahoul, L. Kahloul, Samir Tigane (2025). Formal Specification, and Verification of a Cooperative Multi-robots System for Delivery Service. 2025 International Symposium on iNnovative Informatics of Biskra (ISNIB)
+Xu Zhu, Yu Qi, Yizhe Zhu, Robin Walters, Robert Platt (2025). EquAct: An SE(3)-Equivariant Multi-Task Transformer for Open-Loop Robotic Manipulation. arXiv.org
+Yu Hao, Fan Yang, Nicholas Fang (2025). CORA: A Chain of Robotic Actions Reasoning Model for Autonomous Robotic Arm Manipulation. International Conference on Automation, Robotics and Applications
+Farhad Nawaz, Shaoting Peng, Lars Lindemann, Nadia Figueroa, Nikolai Matni (2024). Reactive Temporal Logic-based Planning and Control for Interactive Robotic Tasks. IEEE/RJS International Conference on Intelligent RObots and Systems
+Artur Graczyk, Marialena Hadjikosti, Andrei Popescu (2023). A Framework for Verifying the Collision Freeness of Collaborative Robots (Work in Progress). International Conference on Integrated Formal Methods
+Alessandro Leanza, Angelo Moroncelli, G. Vizzari, Francesco Braghin, L. Roveda, and 1 more (2025). ConceptBot: Enhancing Robot's Autonomy through Task Decomposition with Large Language Models and Knowledge Graph. arXiv.org
+No authors found (2021). Proceedings of the 1st International Workshop on Verification of Autonomous & Robotic Systems
+Yi-Fei Wang, Masaki Nakamura, Ryo Takano, Takuya Matsumoto, Kazutoshi Sakakibara (2025). Formal Verification of Autonomous Vehicle Group Control Systems via Specification Translation of Multitask Hybrid Observational Transition Systems. Electronics
+Guy Scher, Sadra Sadraddini, H. Kress-Gazit (2023). Probabilistic Rare-Event Verification for Temporal Logic Robot Tasks. IEEE International Conference on Robotics and Automation
+Mehul Anand, Shishir N. Y. Kolathaya (2025). Safety Certification in the Latent space using Control Barrier Functions and World Models. arXiv.org
+C. Belta (2015). Formal methods for controlling networked systems. International Conference on Crowd Science and Engineering
+Ashutosh Gupta, John Komp, Abhay Singh Rajput, Shankaranarayanan Krishna, Ashutosh Trivedi, and 1 more (2024). Integrating Explanations in Learning LTL Specifications from Demonstrations. arXiv.org
+B. Liao, Chih-Hong Cheng, H. Esen, Alois Knoll (2022). Are Transformers More Robust? Towards Exact Robustness Verification for Transformers. International Conference on Computer Safety, Reliability, and Security
+Jiabao Ji, Yongchao Chen, Yang Zhang, R. Kompella, Chuchu Fan, and 2 more (2025). Collision- and Reachability-Aware Multi-Robot Control with Grounded LLM Planners. arXiv.org
+Jordan Peper, Yan Miao, Sayan Mitra, Ivan Ruchkin (2025). Towards Unified Probabilistic Verification and Validation of Vision-Based Autonomy. arXiv.org
+Alessia Fusco, Valerio Modugno, Dimitrios Kanoulas, Alessandro Rizzo, Marco Cognetti (2024). Transformer-Based Prediction of Human Motions and Contact Forces for Physical Human-Robot Interaction. IEEE International Conference on Robotics and Automation
+Jinyong Wang, Zhiqiu Huang, Deyan Yang, Xiaowei Huang, Yi Zhu (2025). Spatio-Clock Synchronous Constraint Systems Specification and Verification to Ensure Autonomous Driving Safety. Software, Practice & Experience
+Chaahat Jain, Lorenzo Cascioli, Laurens Devos, Marcel Vinzent, Marcel Steinmetz, and 2 more (2024). Safety Verification of Tree-Ensemble Policies via Predicate Abstraction. European Conference on Artificial Intelligence
+Minheng Ni, Lei Zhang, Zihan Chen, W. Zuo (2024). Don't Let Your Robot be Harmful: Responsible Robotic Manipulation. arXiv.org
+Angelo Ferrando, A. Gatti, V. Mascardi (2023). RV4Rasa: A Formalism-Agnostic Runtime Verification Framework for Verifying ChatBots in Rasa. VORTEX@ISSTA
+Rim Zrelli, H. Misson, Maroua Ben Attia, F. Magalhães, Abdo Shabah, and 1 more (2024). Advancing Formal Verification: Fine-Tuning LLMs for Translating Natural Language Requirements to CTL Specifications. RSP
+Benedict Quartey, Eric Rosen, Stefanie Tellex, G. Konidaris Veriﬁably Following Complex Robot Instructions with Foundation Models
+Xinhang Ma, Junlin Wu, Hussein Sibai, Y. Kantaros, Yevgeniy Vorobeychik (2025). Learning Vision-Based Neural Network Controllers with Semi-Probabilistic Safety Guarantees. arXiv.org
+Vladimir Krsmanovic, Matthias Cosler, Mohamed Ghanem, Bernd Finkbeiner (2025). Learning Representations Through Contrastive Neural Model Checking
+Mingdong Sun, Yue Gao (2025). Safety supervision framework for legged robots through safety verification and fall protection. Robotica (Cambridge. Print)
+Faruk Alpay, Taylan Alpay (2025). Manipulating Transformer-Based Models: Controllability, Steerability, and Robust Interventions
+Ana Davila, Jacinto Colan, Yasuhisa Hasegawa (2025). Affordance-Based Disambiguation of Surgical Instructions for Collaborative Robot-Assisted Surgery. arXiv.org
+Alexandra Davidoff, Lynn Vonderhaar, Timothy Elvira, Omar Ochoa (2025). Formal Verification of Synthetic Image Datasets using Large Language Models. International Conference on Artificial Intelligence Testing
+Kim Wölfel, D. Henrich (2020). Simulation-Based Validation of Robot Commands for Force-Based Robot Motions. Deutsche Jahrestagung für Künstliche Intelligenz
+Jonathan Hellwig, Lukas Schäfer, Long Qian, André Platzer, Matthias Althoff (2025). From Zonotopes to Proof Certificates: A Formal Pipeline for Safe Control Envelopes. arXiv.org
+Claudiu Leoveanu-Condrei (2025). A DbC Inspired Neurosymbolic Layer for Trustworthy Agent Design. arXiv.org
+Ilmaan Zia, Muhammad Abdul Basit Ur Rahim, Tairan Liu, Zhangying He (2023). Formal Modeling and Verification of Industrial Robotic Arm - A Case Study. IEEE International Conference on Software Quality, Reliability and Security Companion
+Brennan Swick, Sean P. Donegan, Andrew Gillman, Michael Groeber (2024). Human Planning of Robot Actions through LLM-guided State Machine Synthesis. 2024 33rd IEEE International Conference on Robot and Human Interactive Communication (ROMAN)
+Ashish Malik, Stefan Lee, Alan Fern (2024). Interruptive Language Control of Bipedal Locomotion. IEEE/RJS International Conference on Intelligent RObots and Systems
+MS Sumeadh, Kevin Dsouza, Ravi Prakash (2025). CPED-NCBFs: A Conformal Prediction for Expert Demonstration-based Neural Control Barrier Functions. arXiv.org
+Mario Gleirscher, Lukas Plecher, J. Peleska (2022). Sound Development of Safety Supervisors. arXiv.org
+Haoyu Wang, Christopher M. Poskitt, Jun Sun, Jiali Wei (2025). Pro2Guard: Proactive Runtime Enforcement of LLM Agent Safety via Probabilistic Model Checking. arXiv.org
+Dorsa Sadigh (2019). Safe and Interactive Autonomy: A Journey Starting from Formal Methods (Keynote). Formal Methods in Computer-Aided Design
+Weiqi Wang, Marie Farrell, Lucas C. Cordeiro, Liping Zhao (2025). Supporting Software Formal Verification with Large Language Models: An Experimental Study. arXiv.org
+Christian Henkel, Marco Lampacrescia, Michaela Klauck, Matteo Morelli (2025). AS2FM: Enabling Statistical Model Checking of ROS 2 Systems for Robust Autonomy
+Luca Marzari, Francesco Trotti, Enrico Marchesini, Alessandro Farinelli (2025). Designing Control Barrier Function via Probabilistic Enumeration for Safe Reinforcement Learning Navigation. IEEE Robotics and Automation Letters
+Delphine Longuet, Amira Elouazzani, Alejandro Penacho Riveiros, Nicola Bastianello (2025). Formal Verification of Local Robustness of a Classification Algorithm for a Spatial Use Case
+Cedric Richter, Heike Wehrheim (2025). Beyond Postconditions: Can Large Language Models infer Formal Contracts for Automatic Software Verification?
+Pranay Mathur (2023). Proactive Human-Robot Interaction using Visuo-Lingual Transformers. arXiv.org
+Peishan Huang, Weijiang Hong, Zhenbang Chen, Ji Wang (2023). CSP based Formal Modeling and Verification of Behavior Trees. IEEE International Conference on Software Quality, Reliability and Security Companion
+Panagiotis Vlantis, M. Zavlanos (2021). Failing with Grace: Learning Neural Network Controllers that are Boundedly Unsafe. Conference on Learning for Dynamics & Control
+J. S. Park, Biao Jia, Mohit Bansal, Dinesh Manocha (2017). Generating Realtime Motion Plans from Attribute-Based Natural Language Instructions Using Dynamic Constraint Mapping
+Kartik Sharma, Yiqiao Jin, Vineeth Rakesh, Yingtong Dou, Menghai Pan, and 2 more (2025). Sysformer: Safeguarding Frozen Large Language Models with Adaptive System Prompts. arXiv.org
+Maeva Guerrier, Karthik Soma, Hassan Fouad, Giovanni Beltrame (2025). Guided by Guardrails: Control Barrier Functions as Safety Instructors for Robotic Learning. arXiv.org
+Irfan Šljivo, E. Denney, Jonathan Menzies (2023). Guided Integration of Formal Verification in Assurance Cases. IEEE International Conference on Formal Engineering Methods
+Tom Hirshberg, Sai H. Vemprala, Ashish Kapoor (2020). Safety Considerations in Deep Control Policies with Probabilistic Safety Barrier Certificates. arXiv.org
+Murali Krishna Pasupuleti (2021). A Control-Theoretic Framework for AI Safety: Stability, Robustness, and Assurance. International Journal of Academic and Industrial Research Innovations(IJAIRI)
+Jingzhan Ge, Zi-Hao Zhang, Sheng-En Huang (2025). Hierarchical Sampling-based Planner with LTL Constraints and Text Prompting. arXiv.org
+Jia-Wen Chen, Jos´e Luiz Vargas de Mendonc¸a, Jean-Baptiste Jeannin (2023). Bridging the Cyber and Physical with a Verifiable, Executable Language for Robotics
+Jasmin Jarsania, Mantek Singh, Fnu Harsh (2025). Generating Natural Language Explanations for LMM-Driven Robot Behavior. 2025 IEEE World AI IoT Congress (AIIoT)
+William Xie, Enora Rice, N. Correll (2025). On the Dual-Use Dilemma in Physical Reasoning and Force. arXiv.org
+Elena Merlo, Marta Lagomarsino, Arash Ajoudani (2025). A Human-in-The-Loop Approach to Robot Action Replanning Through LLM Common-Sense Reasoning. IEEE Robotics and Automation Letters
+Stefano Bernagozzi, S. Faraci, Enrico Ghiorzi, K. Pedemonte, A. Ferrando, and 2 more (2025). Model-based Verification and Monitoring for Safe and Responsive Robots. Simulation, Modeling, and Programming for Autonomous Robots
+Vasileios Manginas, Nikolaos Manginas, Edward Stevinson, Sherwin Varghese, Nikos Katzouris, and 2 more (2025). A Scalable Approach to Probabilistic Neuro-Symbolic Robustness Verification
+Milan Ganai, Rohan Sinha, Christopher Agia, Daniel Morton, Marco Pavone (2025). Real-Time Out-of-Distribution Failure Prevention via Multi-Modal Reasoning. arXiv.org
+Weijiang Hong, Zhenbang Chen, Minglong Li, Yuhan Li, Peishan Huang, and 1 more (2023). Formal Verification Based Synthesis for Behavior Trees. International Symposium on Software Engineering: Theories, Tools, and Applications
+Soojin Jeong, Seongwan Byeon, Sangwoo Kim, HyeokJun Kwon, Yoonseon Oh (2025). GNN-Transformer Task Planning Enhanced with Semantic-Driven Data Augmentation. AAAI Conference on Artificial Intelligence
+Junhyeok Ahn, S. Bang, Carlos Gonzalez, Yuanchen Yuan, L. Sentis (2022). Data-Driven Safety Verification and Explainability for Whole-Body Manipulation and Locomotion. IEEE-RAS International Conference on Humanoid Robots
+Yue Cao, Jiakang Zhou, Feng Cao, Feng Shu (2023). DistFormer: A High-Accuracy Transformer-Based Collision Distance Estimator for Robotic Arms. International Conference Control Science and Systems Engineering
+Parth Ganeriwala, Nandith Narayan, Randolph M. Jones, Michael Matessa, S. Bhattacharyya, and 4 more (2025). Systems Engineering With Architecture Modeling, Formal Verification, and Human Interactions for Learning‐Enabled Autonomous Agent. Systems Engineering
+Radoslav Ivanov, James Weimer, O. Sokolsky, Insup Lee (2019). Demo. Proceedings of the Workshop on Design Automation for CPS and IoT - DESTION '19
+William Barron, Xiaoxiang Dong, Matthew Johnson-Roberson, Weiming Zhi (2025). Cross-Modal Instructions for Robot Motion Generation. arXiv.org
+Mikihisa Yuasa, R. Sreenivas, Huy T. Tran (2025). Neuro-Symbolic Generation of Explanations for Robot Policies with Weighted Signal Temporal Logic
+Manvi Jha, Jiaxin Wan, Deming Chen (2025). Proof2Silicon: Prompt Repair for Verified Code and Hardware Generation via Reinforcement Learning
+David J Fernandez, G. Grande, Sean Ye, N. Gopalan, M. Gombolay (2022). Interactive Learning with Natural Language Feedback
+Mingyue Zhang, Nianyu Li, Yi Chen, Jialong Li, Xiao-Yi Zhang, and 3 more (2025). Learning Verified Safe Neural Network Controllers for Multi-Agent Path Finding. AAAI Conference on Artificial Intelligence
+M. Foughali (2018). Formal verification of the functionnal layer of robotic and autonomous systems
+Takamitsu Matsubara Reinforcement Learning for Formal Language Instruction-Driven Robot Autonomy
+Mattias Ulbrich, L. Schreiter, Sarah Grebing, J. Raczkowsky, H. Wörn, and 1 more (2015). A Concept for Multi-Phase Incremental Formal Verification in Robotic Guided Surgery
+M. Zamani, S. Magg, C. Weber, Stefan Wermter (2018). Language-modulated Actions for Safer Human-Robot Interaction using Deep Reinforcement Learning
+R. Gregg (2013). Towards Formal Verification Methods for Robotic Lower-Limb Prostheses and Orthoses
+Aaron Pereira, M. Althoff (2017). Online Formal Verification of Robot Trajectories for Guaranteed Safety of Humans
+J. Lohoefener (2011). A Methodology for Automated Verification of Rosetta Specification Transformations
+Alexei Kopylov, Stefan Mitsch, A. Nogin, Michael Warren Formally Veriﬁed Safety Net for Waypoint Navigation Neural Network Controllers (cid:63)
+Sebastian Junges, J. Katoen, Nils Jansen, U. Topcu Probabilistic Veriﬁcation for Cognitive Models: Controller Synthesis and Model Evaluation
+Michael Vilzmann (2016). Mission Planning and Verification for Autonomous Unmanned Aerial Vehicles
+Mohammad Nazeri, Anuj Pokhrel, Alexandyr Card, A. Datar, Garrett Warnell, and 1 more V ERTI F ORMER : A Data-Efficient Multi-Task Transformer on Vertically Challenging Terrain
+TasksEugenia Shkel, Nicola J. FerrierDepartment (2007). Specifying and Verifying Robotic
+Y. Nakabo, Yoji Yamada (2009). Modeling and Verification of Safety Systems using Formal Methods for Human-Coexisting Robots
+Nicola J. FerrierDepartment (1997). Specifying and Verifying Robotic Tasks
+Matthias Cosler, Christopher Hahn, Daniel Mendoza, Frederik Schmitt, Caroline Trippel Unstructured Natural Language to Temporal Logics with Large Language Models
+Julia M. Badger, Sheena Judson Miller (2011). Formal Verification Toolkit for Requirements and Early Design Stages
+K. Matthew, M Franklin Ln A Transformational Method for Verifying Safety Properties in Real-Time Systems *
+Jacob Arkin, Daehyung Park, Subhro Roy, Matthew R. Walter, Nicholas Roy, and 2 more MIT Open Access Articles Multimodal estimation and communication of latent semantic knowledge for robust execution of robot instructions
+F. Alegre, René C. Valenzuela, E. Feron, S. Pande (2007). Proving Correctness of Autocoded Control Software
+Bruno Lacerda, D. Parker, Nick Hawes (2018). Policy Generation with Probabilistic Guarantees for Long-term Autonomy of a Mobile Robot
+Florent Delgrange Activating formal verification of deep reinforcement learning policies by model checking bisimilar latent space models
+J. S. Park, Dinesh Manocha (2018). Combining Computer Vision and Real Time Motion Planning for Human-Robot Interaction
+No authors found Contract-Based Verification of Model Transformations: A Formally Founded Appr

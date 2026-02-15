@@ -1,0 +1,2775 @@
+--- Page 1 ---
+A Temporal Planning Framework for Multi-Agent
+Systems via LLM-Aided Knowledge Base Management
+Enrico Saccona,∗, Ahmet Tiknaa, Davide De Martinia, Edoardo Lamona,
+Luigi Palopolia, Marco Roveria
+aDepartment of Engineering and Computer Science, University of Trento, Trento, Italy
+Abstract
+This paper presents a novel framework, called PLANTOR (PLanning
+with Natural language for Task-Oriented Robots), that integrates Large Lan-
+guage Models (LLMs) with Prolog-based knowledge management and plan-
+ning for multi-robot tasks. The system employs a two-phase generation of a
+robot-oriented knowledge base, ensuring reusability and compositional rea-
+soning, as well as a three-step planning procedure that handles temporal
+dependencies, resource constraints, and parallel task execution via mixed-
+integer linear programming. The final plan is converted into a Behaviour
+Tree for direct use in ROS2. We tested the framework in multi-robot as-
+sembly tasks within a block world and an arch-building scenario. Results
+demonstrate that LLMs can produce accurate knowledge bases with modest
+human feedback, while Prolog guarantees formal correctness and explainabil-
+ity. This approach underscores the potential of LLM integration for advanced
+robotics tasks requiring flexible, scalable, and human-understandable plan-
+ning.
+Keywords:
+Task Planning, Knowledge Base, Multi-Agent Systems, Prolog,
+Large Language Models
+1. Introduction
+The introduction of advanced language models (LLMs) represents a paradigm
+shift for a wide range of AI applications. In robotics, LLMs could drive dis-
+∗Corresponding author
+Email address: enrico.saccon@unitn.it (Enrico Saccon)
+Preprint submitted to Robotics and Autonomous Systems
+February 27, 2025
+arXiv:2502.19135v1  [cs.AI]  26 Feb 2025
+
+
+--- Page 2 ---
+ruptive advancements in human-robot interaction, adaptive behaviours, and
+multi-agent collaboration, bringing the widespread integration of robots into
+everyday life closer to reality in the coming years.
+To achieve these am-
+bitious goals, robot decision-making processes must go beyond initial user
+input, continuously incorporating feedback loops for real-time task adapta-
+tion [1].
+Despite the remarkable efficiency of LLMs in interpreting natural lan-
+guage and providing semantic information about the real world, this tech-
+nology lacks a crucial feature for robotic applications: the predictability and
+explainability of the decision-making process. These qualities are at the heart
+of more traditional approaches to knowledge representation and management,
+such as logic or functional languages [2]. For instance, Prolog [3] enables the
+expression of a Knowledge Base (KB) through facts and rules, linking them
+to feasible actions. This capability has already been successfully leveraged
+in robotics to construct knowledge representations [4], address planning and
+reasoning challenges [5], and, when combined with natural language process-
+ing, enhance human-robot interaction [6, 7].
+The use of Prolog makes the KB inherently compositional and reusable,
+allowing for the deduction of new concepts and the execution of queries to
+verify consistency, infer new knowledge, or update existing knowledge. Logi-
+cal reasoning facilitates the evaluation of these updates, ensuring coherence.
+For example, a new robotic implementation of the same task can be achieved
+by refining the relevant predicates and actions. However, populating a KB is
+not a straightforward task for non-experts, as it requires mastery of a highly
+specific formalism and its associated rules.
+In this work, we bridge the gap between these two worlds by harnessing
+the power of LLMs to generate a human-readable logic KB. This process
+is carried out using natural language descriptions of the environment, the
+goals, and the robot’s capabilities, which can be easily derived from techni-
+cal documentation or the verbalised experiences of workers and operators.
+The KB is then utilised to generate executable plans with a high degree of
+predictability and robustness.
+Specifically, this manuscript introduces a novel framework for knowledge
+generation, management, and planning in multi-agent systems, which: i) em-
+ploys a semi-automatic procedure that leverages LLMs to populate a Pro-
+log-based KB ; ii) enables the seamless generation of plans incorporating
+temporal parallelism, thus allowing multiple agents to execute concurrent
+actions; iii) automatically translates the generated plan into the widely used
+2
+
+
+--- Page 3 ---
+Behaviour Tree formalism, facilitating integration into ROS-based execution
+environments for robotic agents.
+To evaluate the proposed framework, we conducted a series of experi-
+ments focusing on its two main components: KB generation and planning
+capabilities. These experiments were carried out in a multi-robot scenario
+involving multiple robots. We considered assembly and construction tasks in
+two distinct proof-of-concept environments: a classical block world and an
+arch-building setup. To further assess the generalisability of the framework,
+we designed multiple examples of increasing complexity for each environment.
+The KB generation process was examined by testing whether LLM ar-
+chitectures could produce accurate and consistent KBs based on the given
+input queries. The results demonstrate that: 1. LLMs are a promising choice
+for interpreting natural language inputs and generating comprehensive KBs,
+albeit still requiring some manual corrections. 2. The framework successfully
+generates plans that integrate the logical aspects captured by the KB with
+resource availability and constraints.
+The paper is organised as follows. In Section 2 we describe our problem
+in detail and provide an overview of the framework, In Section 3, we describe
+the main background technologies used in thsi paper and formalise the plan-
+ning problem. In Section 4 we describe the approach for the creation and
+the population of the knowledge base. In Section 5 we detail our algorithmic
+solution to generate an executable plan from the KB. In Section 7, we give a
+full account of the experimental validation of the framework. Finally, in Sec-
+tion 8 we discuss the related work, while in Section 9 we offer our conclusions
+and discuss future work directions.
+2. Problem Description and Solution Overview
+2.1. Problem Formalisation
+The initial input of our framework is a text expressed in natural lan-
+guage containing a description of the following: 1. How a task can be accom-
+plished by combining high-level actions. 2. The robotic resources available,
+along with a description of the low-level actions they are capable of per-
+forming. 3. The environment. The final objective is to generate, through
+an explainable process, an executable specification of the actions assigned
+to each robotic resource. The key requirements for the framework are as
+follows:
+3
+
+
+--- Page 4 ---
+Figure 1: The architecture of the proposed framework.
+– R1: The execution of a task must be formally correct, i.e., it must
+accomplish the goals and adhere to the constraints derived from the
+natural language text.
+– R2: The process must be explainable, ensuring that methods exist
+for human users to understand and trust the results produced by the
+system.
+– R3: The knowledge obtained from understanding task execution through
+high-level actions must be reusable across different implementation sce-
+narios (e.g., using one robot or multiple robots).
+– R4: The generation of the plan must support and optimise the parallel
+execution of actions across the available robotic resources.
+– R5: The executable specification of the plan must be compatible with
+ROS2, which serves as a de facto standard for the execution environ-
+ment of a wide range of robotic devices.
+2.2. Solution Overview
+The problem outlined above is addressed in this paper through a software
+framework depicted in Figure 1.
+The framework comprises the following
+modules:
+4
+
+
+--- Page 5 ---
+– Knowledge Management System (KMS): It takes the initial nat-
+ural language inputs and extracts a KB in Prolog.
+– Planner: It determines an executable plan from the KB.
+– Execution Module: It executes the plan by leveraging integration
+with the ROS2 middleware.
+The KMS utilises an LLM to generate the KB from a collection of natural
+language texts. In the first step, the description of the process and the envi-
+ronment is used to generate a high-level knowledge base, i.e., a set of logical
+predicates that encode the breakdown of the task execution into a number
+of interconnected high-level actions. In the second step, this knowledge is
+augmented with low-level robot-specific information, specifying how a high-
+level action can be implemented using the elementary actions provided by
+the robot.
+The technical details of these steps are outlined in Section 4. The gen-
+eration of the KB is not fully automated and requires, at each step, some
+consistency checks (CC) by the human developer. These checks ensure that
+the generated Prolog is formally correct and that the goals and constraints
+are adequately captured. When an inconsistency is identified, a few-shot
+learning approach is used to provide feedback within the prompt, enabling
+the system to correct itself. Using a Prolog KB offers several advantages over
+directly generating an executable plan:
+1. The KB contains a formal statement of goals and constraints, which
+facilitates the generation of formal correct plans (R1).
+2. A Prolog KB is compact, human-readable, and understandable, en-
+hancing the generation process’s explainability (R2).
+3. The deductive reasoning capabilities of Prolog make the KB inherently
+compositional and reusable (R3). Differently from other approaches
+to represent task planning in the robotic setting (e.g., those based on
+PDDL [8] like for instance RosPlan [9] or PlanSys2 [10]) which are
+static, the Prolog KB allows us to deduce new concepts and perform
+queries to check the consistency of the KB, infer new knowledge, or
+update the current knowledge, evaluating the effects of the KB update
+by logical reasoning. A new robotic implementation of the same task
+can be achieved by refining the same predicates and actions.
+The two-phase construction of the KB provides two key benefits: 1. Facili-
+tates reuse of the same high-level conceptual structure for different robotic
+implementations. 2. Helps manage the complexity of plan generation.
+The generation of plans follows three steps. In the first step, detailed
+5
+
+
+--- Page 6 ---
+in Section 5.1, a forward search is carried out starting from the initial state
+encoded in the KB. Different combinations of actions are tested until a se-
+quence is found that transitions from the initial state to the goal state. This
+sequence represents a totally ordered set of actions, but does not include
+timing information or account for resource-specific constraints.
+The second step, discussed in Section 5.2, utilises Prolog’s capabilities
+to analyse causal dependencies between actions. Additionally, the KB asso-
+ciates each action with the type of resource required for its execution (e.g.,
+a move operation might require a RoboticArm). The outcome is a partially
+ordered plan, where sequencing constraints exist only between causally de-
+pendent actions. Resource-sharing constraints are not yet captured at this
+stage.
+In the third step, detailed in Section 5.3, a mixed-integer linear optimi-
+sation problem (MILP) is formulated. This step aims to: 1. Allocate actual
+resources to actions.
+2. Optimise the timing of actions.
+The MILP en-
+codes causal relationships between actions (enablers), resource constraints,
+and limits on the duration of the actions. The solution is a simple tempo-
+ral network (STN), which can be checked for consistency. If successful, the
+resulting plan supports parallel execution (R4) and is translated into a Be-
+haviour Tree (BT), a standard formalism for the execution of robotic plans in
+ROS2 (R5). Further details on this phase are provided in Section 6. If this
+operation fails, Prolog’s backtracking capability can be employed to generate
+an alternative total-order and repeat the process. Persistent failures indicate
+a possible error in the KB or domain description, both of which should be
+revised.
+A preliminary version of this work is presented in [11], where the LLM
+was used to generate only the initial and final states of the planning problem.
+This work extends the previous one in several directions. First, we have a
+flow to validate the output of the LLM, considering feedback to the user to
+correct possible logical and consistency errors. Second, the LLM produces a
+high-level description of the planning task and a low-level one where addi-
+tional details (e.g., resources and affordability) are considered, together with
+a mapping of high-level actions into low-level plans. Third, the formulation
+differentiating two levels allows reducing the burden and possible bottlenecks
+of generating the plan directly at the low-level of details. Finally, in generat-
+ing the low-level plan, we consider resources to reduce the makespan of the
+plans and parallelise the tasks on different robots.
+Similarly to [11], the planner we implemented in Prolog performs a depth-
+6
+
+
+--- Page 7 ---
+first search, which has some drawbacks, mainly:
+– the provided plan is inefficient and usually sub-optimal since the solver
+will return the first plan that is feasible;
+– the number of actions to choose from and the number of resources that
+must be allocated deeply impact the time to compute a feasible plan
+and its optimality.
+We decided to focus on the second aspect to improve the plan obtained with
+the framework. We left as future work to leverage existing state-of-the-art
+planners (e.g., OPTIC [12] or FastDownward [13]) for the generation of plans
+to further be optimized considering resources.
+3. Background and Definitions
+3.1. Task Planning
+Classical Task Planning. A (STRIPS) classical planning problem is defined
+as a tuple CP = (F, A, I, G), where F is the set of fluents, A is a finite
+set of actions, I ⊆F is the initial state, and G ⊆F is the goal condi-
+tion. Intuitively, a fluent is a predicate expressing a condition (e.g., on the
+system’s state) that can evolve over time as a consequence of actions. For
+example, a fluent can be a predicate such as at(robot, RoomA), with an
+obvious interpretation. A literal is defined as a fluent or its negation. In
+a classical planning problem, each action a ∈A consists of preconditions
+denoted pre(a), and effects denoted eff(a), both of which are sets of lit-
+erals. An action is executable if all the fluents in pre(a) are present in the
+current state. Once executed, the state is updated according to eff(a). The
+effects eff(a) consist of a set of fluents in the form of add(l) or del(l), where
+the first adds the fluent l to the current state and the latter removes it. A
+literal l(x) may depend on a set of variables x, which are fluents: x ∈F.
+For instance, available(A) indicates whether a generic A is available or not,
+but the value of A is not grounded to a specific instance.
+For an action
+a ∈A with preconditions pre(a) and effects eff(a), the action’s variables,
+denoted fl(a), are defined as the set of all variables appearing in the literals
+of pre(a) ∪eff(a). For example, if the preconditions for an action a are
+pre(a) = [l1(A), l2(B), l3], then the set of its variables is fl(a) = {A, B}.
+This later allows us to identify the resources on which the action a depends.
+Consider the action move(robot, RoomA, RoomB) as a conclusive example.
+It requires, as a precondition, that the fluent at(robot, RoomA) be present
+in the system state. Its effects are given by del(at(robot, RoomA)) and
+7
+
+
+--- Page 8 ---
+add(at(robot, RoomB)). A classical plan π = (a1, . . . , an) is a sequence of
+actions. It is said to be valid if and only if it is executable from the initial
+state and results in a final state that satisfies the goal G [14]. As an impor-
+tant remark, in classical planning actions have a null duration and are for
+this reason called snap actions
+Temporal task planning. Following [15, 16, 17], a temporal planning problem
+is defined as a tuple TP = (F, DA, I, G), with F, I and G as in the classical
+planning problem and with DA being a set of durative actions. A durative
+action α ∈DA is given by
+i) two classical planning actions a⊢and a⊣(i.e., the start actions and the
+end action);
+ii) an overall condition overall(α) that is true for the duration of the
+action;
+iii) and a duration δ(α) ∈R+ in the interval [δmin(α), δmax(α)], δmin(α) ≤
+δmax(α).
+In the definition of a durable action α, a⊢and a⊣are snap actions and are
+used, respectively, to set the conditions for action α to start and to finalise
+its effects when the action is completed.
+We will consistently use Greek
+letters (e.g., α) with reference to durable actions and latin letters (e.g., a)
+with reference to snap actions. A temporal plan π = {tta1, · · · , ttan} is a set
+of time-triggered temporal actions ttai, where each ttai is a tuple ⟨ti, αi, δi⟩
+where ti ∈R+ is the starting time, αi ∈DA is a durable action, and δi is
+its duration. π is said to be a valid temporal plan if and only if it can be
+simulated, i.e., it can be executed, meaning that starting from the initial
+state, we apply each time-triggered action and at the end of the simulation,
+we obtain a state fulfilling the goal condition [8, 12, 15, 16, 17].
+State-space temporal planning is a specific approach to temporal plan-
+ning. The intuition behind this approach is to combine i) a classical forward
+state-space search to generate a candidate plan outline; and ii) a temporal
+reasoner to check its temporal feasibility [15, 16, 17]. By considering the
+durative actions α ∈DA as the start and end snap actions, one can gener-
+ate an abstract classical problem, which is then solved using any state-space
+search. The search extracts a classical plan and then checks if the associated
+temporal network is consistent; then a time-triggered plan can be computed,
+and the search stops once a solution has been found. Otherwise, the search
+continues by computing another classical plan until either the search proves
+that the problem has no solution or the search bumps into a temporally
+8
+
+
+--- Page 9 ---
+consistent plan.
+Mapped Temporal Task Planning. Our approach extends the standard tem-
+poral task planning problem, introducing a novel formalization that we define
+as Mapped Temporal Task Planning. This problem is characterized by the
+tuple TP = (F, DA, I, G, K, M), where:
+– F is the set of all fluents;
+– DA = DAH ∪DAL is the set of durative actions, distinguished in high-
+level (DAH) and low-level temporal actions (DAL), with DAL∩DAH =
+∅;
+– I ⊆F is the initial state;
+– G ⊆F is the final state;
+– K ⊆F represents the set of grounding predicates;
+– M ⊆
+[
+i=1..N
+DAH × DAi
+L with N ≥1 denotes the set of mappings.
+This formulation differs from standard temporal planning in three key
+aspects:
+1. We introduce the set K ⊆F, which encapsulates grounding knowledge,
+i.e., information assumed to remain invariant during plan execution.
+For instance, a grounded predicate such as HasManipulator(Agent1)
+signifies that Agent1 is endowed with a manipulator.
+2. We distinguish between high-level actions (DAH) and low-level actions
+(DAL). Conceptually, high-level actions represent abstract tasks (e.g.,
+moveBlock(BlockA, LocA, LocB)), whereas low-level actions encode
+the concrete steps required to execute these tasks (e.g., grasp(Arm1,
+Block)).
+3. We introduce the mappings M ⊆
+[
+i=1..N
+DAH × DAi
+L with N ≥1. A
+high-level durative action α is said to be an abstraction of a sequence
+⟨α1, ..., αN⟩if the following property holds: If α ∈DAH is executable
+in a state ss and results in a state sd, then for any states s′
+s and s′
+d such
+that ss ⊆s′
+s and sd ⊆s′
+d, the sequence ⟨α1, ..., αN⟩is executable in s′
+s
+and leads to s′
+d.
+The set of mappings M is defined as the subset of M ⊆S
+i=1..N DAH ×
+DAi
+L with N ≥1 made of the elements (α, ⟨α1, ..., αN⟩) such that α is an
+abstraction of ⟨α1, ..., αN⟩. In formal terms:
+M = {(α, ⟨α1, ..., αN⟩)|α ∈DAH, ∀i, αi ∈DAL, N ≥1, α
+is an abstraction for ⟨α1, ..., αN⟩} .
+9
+
+
+--- Page 10 ---
+For any element m = (α, ⟨α1, ..., αN⟩) ∈M, we denote by m(α) the sequence
+⟨α1, ..., αN⟩.
+For example, consider a high-level action αi mapped to a sequence of low-
+level actions αj, αk, where i /∈{j, k}, with the mapping m(αi) = ⟨αj, αk⟩.
+This mapping can also be expressed in terms of snap actions: m(αi⊢) =
+⟨αj⊢, αj⊣, αk⊢, αk⊣⟩, indicating that the mapping is applied when αi starts,
+and that αi should terminate only when all actions in the mapping have
+completed.
+As in standard temporal planning, a feasible plan for mapped temporal
+task planning consists of a set of durative actions such that the goal state
+is reached from the initial state, through simulation, i.e., by applying the
+durative actions in the correct order, the system transitions from the initial
+state to a state that satisfies the goal conditions.
+Finally, as part of the set of fluents (F), we also define a set of resources
+R ⊆F, which in this work describe the agents that can carry out a task.
+This will allow us later to set up a MILP problem to parallelize tasks for
+multiple agents and shrink the makespan of the plan.
+To simplify notation, we will henceforth use the term “action” to refer to
+“durative actions,” unless explicitly stated otherwise.
+3.2. Prolog
+Prolog is a logic-based programming language commonly utilized for
+knowledge representation and symbolic reasoning. In Prolog, a KB can be
+defined as a collection of facts and rules, which can be queried to evaluate
+the satisfiability of more complex conditions. Within robotics, Prolog is a
+useful tool for encoding knowledge about robots, their actions, and the envi-
+ronment in which they operate. This programming language has also shown
+great potential in task planning [5] and has gained interest when combined
+with natural language processing, as this integration facilitates human-robot
+interaction [6, 7].
+In the following, we provide an overview of Prolog’s semantics and its
+operational principles. For a detailed explanation of Prolog semantics and
+the specifics of the SWI-Prolog implementation, we refer the reader to [18].
+In Prolog, the order of predicates within the KB significantly affects exe-
+cution. When a query is made, the interpreter evaluates the predicates in
+the sequence in which they appear. To demonstrate this, consider the fol-
+lowing example. Suppose the KB includes these facts listed in this order:
+available(agent2) and available(agent1). If the query available(X)
+10
+
+
+--- Page 11 ---
+is executed, the interpreter will first assign agent2 to X, and only if another
+query is made, agent1 will be returned.
+Another important feature of Prolog is its ability to backtrack. When
+encountering a predicate that results in failure, the interpreter retraces its
+steps to explore alternative solutions. However, backtracking requires a fail-
+ure condition to occur. If no such condition is reached, the program may
+enter an infinite loop. For example, if the actions grip and release are
+defined as the first two actions in the KB, the planner can continuously al-
+ternate between them until a failure condition is encountered. Therefore,
+properly defining rules and conditions is essential to prevent endless loops
+and ensure that Prolog terminates appropriately.
+3.3. Large Language Models
+LLMs are a class of AI models aimed at natural language processing.
+They are often built upon transformer networks [19], which utilise self-
+attention mechanisms to better understand the context of words in a sen-
+tence. They are typically trained with enormous amounts of data and have
+hundreds of billions of parameters, which can also be fine-tuned for the task
+in which they are employed [20, 21]. Thanks to their ability to generalise and
+understand the context in which they are used, they have gained increasing
+relevance in recent years.
+LLMs have been applied to a growing number
+of different fields, from healthcare [22] to planning [23], also demonstrating
+their limitations [24]. In fact, while LLMs excel at learning complex patterns
+and information from vast training data, they rely primarily on statistical
+associations. They do not possess genuine inferential reasoning capabilities
+and, consequently, LLMs struggle when confronted with tasks different from
+the data they were trained on. Despite this, they can provide acceptable
+starting points for further refinements. Since they are trained on very gen-
+eral knowledge, it is also important to instruct LLMs on how to provide the
+output or solve some particular tasks that they are unaware of. Some of the
+most common techniques are:
+– Few-shot learning [25]: A series of examples in the form of QAs is
+passed to the LLM as input, allowing the LLM to understand how it
+should answer.
+– Fine-tuning [26]: a more complex and complete training algorithm,
+which enables the user to generate a dataset to pass to the LLM in
+order to re-train the last layers of the neural network, enabling a more
+accurate output.
+11
+
+
+--- Page 12 ---
+– Chain-of-Thought (CoT) [27]: similar to few-shot learning, it enables
+the user to pass a series of examples with also an explanation of the
+solution improving the LLM’s ”reasoning” abilities.
+4. Knowledge-base Generation
+The Knowledge Management System module (KMS), is in charge of tak-
+ing the natural language description of both the environment and the actions
+that the agents can do, and convert them to a Prolog KB using a LLM. The
+KB contains all the necessary elements to define the mapped planning prob-
+lem introduced in the previous section.
+The framework works by considering a high-level and a low-level
+knowledge-base. For this reason, the input descriptions are also split into
+high-level and low-level. The former captures more abstract concepts, e.g.,
+complex actions such as move_block or the objects that are present in the
+environment. The latter captures more concrete and physical aspects of the
+problem, e.g., the actions that can be actually carried out by the agents such
+as move_arm or the positions of the blocks. An example of this division can
+be seen in Section 4.1.
+The knowledge-base is divided in the following parts:
+– General KB (K): contains the grounding predicates, both for the high-
+level and low-level. These predicates describe parts of the scenario or
+of the environment that do not change during execution. For example,
+the predicate wheeled(a1), which states that robot
+a1 has wheels,
+should be part of the general KB and not of the state.
+– Initial (I) and final states (G): they contain all the fluents that change
+during the execution of the plan.
+This could be, for example, the
+position of blocks in the environment.
+– High-level actions (DAH): each high-level action predicate is written
+as:
+action(
+action_name(args),
+[positive_preconditions],
+[negative_preconditions],
+[grounding_predicates],
+[effects]
+).
+12
+
+
+--- Page 13 ---
+The low-level actions (DAL) have the same structure, but instead
+of being described as predicates of type action, they are described
+as ll_action.
+The preconditions pre(a) of an action a are ob-
+tained by combining the list of predicates positive_preconditions
+and
+negative_preconditions.
+The
+predicates
+in
+the
+list
+grounding_predicates are used to ground the parametrised fluents
+of the action. For example, the action move_block depends on a block,
+and we can check that the action is correctly picking a block and not
+another object by querying the KB in this step. Section 4.1 clarifies
+this aspect.
+– Mappings (M): contains a dictionary of high-level actions DAH and
+how they should be mapped to a sequence of low-level actions DAL.
+As will become apparent in the following, the distinction between high-
+level and low-level actions induces a significant simplification in the
+planning phase.
+– Resources (R): the predicate resource\1 states whether another pred-
+icate is part of the resources or not. As mentioned before, this is helpful
+because it allows one to shrink the complexity of the problem not hav-
+ing to check multiple predicates, but instead they are later allocated
+during the optimisation part.
+Once the user provides descriptions for the high-level and low-level parts,
+the framework performs a consistency check to ensure that there are no
+conflicts between them.
+It verifies that both descriptions share the same
+goal, that objects remain consistent across high-level and low-level, and that
+agents are capable of executing the tasks. This validation is carried out by
+an LLM, which, if inconsistencies are detected, provides an explanation to
+help the user make the necessary corrections.
+In both this step and the subsequent steps to generate the KB, the LLM is
+not used directly out of the box. Instead, we employ the Chain-of-Thought
+(CoT) [27] approach, which involves providing the LLM with examples to
+guide its reasoning. This process ensures that the output is not only struc-
+turally correct, but also more aligned with the overall goal of the task.
+Examples are particularly important when generating the KB. Indeed,
+as we have mentioned before, the knowledge-base is highly structured and
+the planner expects to have the different components written correctly. CoT
+enables the LLM to know these details.
+We tested two different ways of generating the KB through LLMs:
+– either we produced the whole KB for the high-level and the low-level
+13
+
+
+--- Page 14 ---
+all at once, or
+– we produced the single parts of the KBs.
+The first approach is quite straightforward: once we have the examples to
+give to the LLM for the CoT process, we can input the high-level description
+and query the LLM to first extract the high-level KB, and then also feed the
+created high-level KB to the LLM to generate the low-level KB, which will
+contain everything.
+Instead, the second approach requires more requests to the LLM. We first
+focus on the high-level KB, and then feed the KB that we have obtained to
+generate the low-level parts. For the high-level generation, we ask the LLM
+to generate the general KB, the initial and final states, and the actions set
+in this particular order. Each time we provide the LLM with the high-level
+description and with the elements generated in the previous steps. The same
+thing is done for the low-level KB, generating again the four components
+and feeding each time also the high-level KB. We include a final step that
+generates the mappings between the high-level and low-level actions. As for
+all the other steps, also in this final step, we pass the previously generated
+elements of the low-level KB. Although generating the entire knowledge-base
+at once would reduce token usage and speed up the process, dividing the
+generation of the KB into distinct steps enhances the system’s accuracy, as
+demonstrated in the experimental evaluation of Section 7. This improvement
+comes because the iterative approach allows the LLM to first focus on gener-
+ating more homogeneous information (i.e., the high-level) and then leverage
+the previously generated content to perform a consistency check.
+4.1. Runing Example – KMS
+We now introduce a running example, which will be used throughout
+this work to expose the interplay between the different components of the
+framework. This scenario is taken from the blocks-world domain [28], which
+is frequently used in task planning. In particular, in this scenario we consider
+a table, blocks, which may either be directly on the table or stack on top of
+each other, and robotics arms, which move the blocks around. Each block is
+also associated with a position in the 2D space. In this particular example,
+we start from a situation in which we have two blocks, b1 and b2, which are
+sat on the table in position (1,1) and (3,1) respectively. The goal is to move
+b1 in position (2,2) and then put b2 on top of it. An iconography of the
+example can be seen in Figure 2.
+14
+
+
+--- Page 15 ---
+0
+1
+2
+3
+0
+1
+2
+Figure 2: A scheme showing the running example. Two blocks must be moved from their
+initial position to a new position in which they are also stacked.
+While this is a trivial example, it highlights very well the capability of the
+knowledge management system to generate complex predicates that can be
+used for planning and it also shows the cooperative abilities of the framework.
+Indeed, while using a single robotic arm generates a straight-forward plan
+solution, coordinating two robotics arms to do the same task reduces the
+completion time at the price of a higher planning complexity.
+Let’s now focus on the knowledge-base generation. For example, the two
+queries that could be passed to the system are:
+high-level query
+In this scenario, there are two blocks on a table. They are placed in positions (1,1)
+and (3,1). There is a robotic agent that can move the blocks from one position to
+another. In particular, it can:
+– move a block from a position on the table, to another position on the table;
+– move a block from a position on the table, to the top of another block;
+– move a block from the top of a block, to a position on the table;
+– move a block from the top of a block, to the top of another block.
+The goal of this scenario is to move the first block from position (1,1) to position (2,2),
+and then place the second block on top of it.
+15
+
+
+--- Page 16 ---
+low-level query
+In this scenario, there are two blocks that are in the same positions as described in the
+high-level query. The robotic agent is a robotic arm and its end-effector is a two-finger
+gripper that can grasp an object. In particular, the following APIs are made available
+for the agent to move:
+– move arm(Arm, X1, Y1, X2, Y2), which allows the end-effector to be moved
+from one position to another;
+– grip(Arm), which allows the gripper to be lowered onto a block and grip the
+block;
+– release(Arm), which allows to lower the block and release the gripper leaving
+the block in place.
+As mentioned before, the first step is to pass the two queries for validation.
+In this case, when using GPT-4o, both queries pass the consistency check.
+If instead of using the previous high-level query, we would modify it by
+removing the possibility of placing one block on top of the other, then the
+LLM would return the following error:
+The description of the scenario has an issue. The agent is described as being able
+to move a block from a position on the table to another position on the table, and
+from the top of a block to a position on the table. However, the goal requires the
+agent to place the second block on top of the first block, which is not listed as an
+action that the agent can carry out. The agent’s capabilities do not include placing
+a block on top of another block, which is necessary to achieve the goal.
+This also allows the user to understand where the mistake is and correct it.
+Once the validation part succeeds, the system generates the high-level
+KB. In this particular instance, for space limitation, we present only the
+general knowledge-base (K), the initial (I) and final (G) states, and a single
+action.
+16
+
+
+--- Page 17 ---
+General KB
+1
+% Positions
+2
+pos(1,1).
+3
+pos(2,2).
+4
+pos(3,1).
+5
+6
+% Blocks
+7
+block(b1).
+8
+block(b2).
+9
+10
+% Agents
+11
+agent(a1).
+12
+13
+% Resources
+14
+resources(agent(_)).
+Initial state (I)
+1
+init_state([
+2
+ontable(b1), ontable(b2),
+3
+at(b1,1,1), at(b2,3,1),
+4
+clear(b1), clear(b2),
+5
+available(a1)
+6
+]).
+Final state (G)
+1
+goal_state([
+2
+ontable(b1),
+3
+on(b2, b1),
+4
+at(b1,2,2), at(b2,2,2),
+5
+clear(b2),
+6
+available(a1)
+7
+]).
+Action example
+1
+action(move_table_to_table_start(Agent, Block, X1, Y1, X2, Y2),
+2
+[ontable(Block), at(Block, X1, Y1), available(Agent),
+clear(Block)],
+,→
+3
+[
+4
+at(_, X2, Y2), on(Block, _), moving_table_to_table(_, Block, _,
+_, _, _),
+,→
+5
+moving_table_to_block(_, Block, _, _, _, _, _)
+6
+],
+7
+[agent(Agent), pos(X1, Y1), pos(X2, Y2), block(Block)],
+8
+[
+9
+del(available(Agent)), del(clear(Block)), del(ontable(Block)),
+del(at(Block, X1, Y1)),
+,→
+10
+add(moving_table_to_table(Agent, Block, X1, Y1, X2, Y2))
+11
+]
+12
+).
+The resulting high-level KB is human-readable and relatively simple (in
+fulfilment of requirement R2). The user at this point can make corrections
+to the high-level KB, if needed, and finally, PLANTOR will also generate
+the low-level knowledge-base.
+In this case for space limitation, we show
+the changes made to the previous elements, one low-level action, and one
+mapping.
+17
+
+
+--- Page 18 ---
+General KB
+1
+% Positions
+2
+pos(0,0).
+3
+pos(1,1).
+4
+pos(2,2).
+5
+pos(3,1).
+6
+7
+% Blocks
+8
+block(b1).
+9
+block(b2).
+10
+11
+% Agents
+12
+agent(a1).
+13
+14
+% Low-level predicates
+15
+ll_arm(a1).
+16
+ll_gripper(a1).
+17
+18
+% Resources
+19
+resources(agent(_)).
+Initial state (I)
+1
+init_state([
+2
+ontable(b1), ontable(b2),
+3
+at(b1,1,1), at(b2,3,1),
+4
+clear(b1), clear(b2),
+5
+available(a1),
+6
+ll_arm_at(a1,0,0),
+7
+ll_gripper(a1,open)
+8
+]).
+Final state (G)
+1
+goal_state([
+2
+ontable(b1),
+3
+on(b2, b1),
+4
+at(b1,2,2), at(b2,2,2),
+5
+clear(b2),
+6
+available(a1),
+7
+ll_arm_at(a1,_,_),
+8
+ll_gripper(a1,_)
+9
+]).
+Action example
+1
+ll_action(move_arm_start(Arm, X, Y),
+2
+[],
+3
+[ll_arm_at(_, X, Y), moving_arm(Arm, _, _, _, _), gripping(Arm,
+_), releasing(Arm)],
+,→
+4
+[],
+5
+[ll_arm(Arm), pos(X, Y)],
+6
+[
+7
+add(moving_arm(Arm, X, Y)),
+8
+del(ll_arm_at(Arm, X, Y))
+9
+]
+10
+).
+18
+
+
+--- Page 19 ---
+Mapping example
+1
+mapping(move_table_to_table_start(Agent, Block, X1, Y1, X2, Y2),
+2
+[
+3
+move_arm_start(Agent, X1, Y1),
+4
+move_arm_end(Agent, X1, Y1),
+5
+grip_start(Agent),
+6
+grip_end(Agent),
+7
+move_arm_start(Agent, X2, Y2),
+8
+move_arm_end(Agent, X2, Y2),
+9
+release_start(Agent),
+10
+release_end(Agent)
+11
+]
+12
+).
+Again, the user can correct possible errors (or anyway refine the KB) and
+then move on to the planning phase.
+5. Plan Generation
+In this section, we describe how the framework uses the information from
+the KB to generate a task plan for multiple agents. Generation takes place
+in three steps: 1. Generation of a total-order (TO) plan, 2. extraction of a
+partial-order (PO) plan and of the resources, 3. solution of a MILP problem
+to improve resource allocation and reducing the plan makespan by exploiting
+the possible parallel executions of actions.
+5.1. Total-Order Plan Generation
+A total-order plan is a strictly sequential list of actions that drives the
+system from the initial to the goal state. The algorithm used to extract a
+total-order plan is shown in Algorithm 1 and consists of two distinct steps:
+– identify a total-order plan for high-level actions, and
+– recursively map each high-level action to a sequence of actions with a
+lower level until they are mapped to actions corresponding to the APIs
+of the available robotic resources.
+This enables the extraction of total-order plans that are consistent with
+the KB provided, and we reduce the computational cost of checking all the
+possible actions at each time step. The TO PLAN function is the main function,
+which takes the initial and final states, and it inspects which actions can be
+executed given the current state. The select action function selects the
+19
+
+
+--- Page 20 ---
+Algorithm 1: Algorithm generating a TO plan with mappings
+Data: TP = (F, DA, I, G, K)
+Result: Plan solving TP
+TO PLAN (S, P)
+In
+: The current state S and the current plan P
+Out: The final plan
+if S ̸= G then
+select action(ai)
+(US, UP) ←APPLY ACTION(ai, S, P)
+P ←TO PLAN(US, UP)
+US, UP ←APPLY MAPPINGS(S,P)
+return P
+APPLY MAPPINGS (S, P)
+In
+: The current state S and the current plan P
+Out: The updated state US and plan UP after the mappings
+US, UP ←S, P
+foreach ai ∈P do
+if is start(ai) ∧has mapping(ai) then
+(US, UP) ←APPLY MAP(ai, US, UP)
+return (US, UP
+APPLY MAP (a, S, P)
+In
+: The action a, the current state S and the current plan P
+Out: The updated state US and plan UP after the mappings
+M ←mapping(a)
+foreach ai ∈M do
+(US, UP) ←APPLY ACTION(a, S, P)
+return (US, UP)
+APPLY ACTION (a, S, P)
+In
+: The action a, the current state S and the current plan P
+Out: The updated state US and plan UP after applying the effects of a
+if is applicable(ai) then
+US ←change state(ai.eff, S)
+UP ←plan action(ai, P)
+return (US, UP)
+else
+return (S, P)
+20
+
+
+--- Page 21 ---
+next action from the set of possible actions. This search is based on the
+Prolog inference engine, which tries the actions in the order in which they
+are written in the KB, and hence it is not an informed search.
+The algorithm then moves to the APPLY ACTION function, which first
+checks if the chosen action’s preconditions are met in the current state and,
+if they are, then it applies its effects changing the state (change state) and
+adding the action to the plan (plan action). It continues until the current
+state satisfies the goal state. Whenever the search reaches a fail point, we ex-
+ploit the Prolog algorithm of resolution to step back and explore alternative
+possibilities.
+Once the algorithm has extracted a high-level total-order plan, it applies
+the mappings. To do so, it iterates over the actions in the plan, and for each
+action it checks if it is a start action (a⊢) and if there are mappings for it.
+If this is the case, it calls the function APPLY MAP, which sequentially applies
+the actions in the mapping to the current state, also adding the actions to
+the plan. Notice that to do so, we call the APPLY ACTION function, which
+checks the preconditions of the actions w.r.t. the current state, ensuring that
+the lower-level actions can actually be applied.
+The total-order plan TO extracted from this function is a list of actions
+that are executed in sequence:
+∀i ∈{0, . . . |TO| −1} t(ai) < t(ai+1)
+5.1.1. Running Example – Total-Order Plan
+Let us consider again the KB that we generated in Section 4.1. Let us
+now see how PLANTOR extracts the TO plan.
+The algorithm starts from the initial state and from the first action in
+the KB, which in this case is the one shown in Section 4.1. The algorithm
+takes the grounding predicates in this case:
+agent(Agent), pos(X1, Y1), pos(X2, Y2), block(Block)
+and checks whether there is an assignment of predicates from the
+knowledge-base that satisfies them. For example, the predicate pos(1,1)
+satisfies pos(X1,Y1). Not only this, but since the predicates in this list are
+grounded w.r.t. the KB, one can also check some conditions. For example,
+if we were to assign the values to the previous predicates, it can happen that
+X1 = X2 and Y1 = Y2, which is useless for an action that moves a block from
+one position to another. By adding the following predicates, we can ensure
+that the values are different:
+21
+
+
+--- Page 22 ---
+agent(Agent), pos(X1, Y1), pos(X2, Y2), block(Block), X1\=X2, Y1\=Y2
+Once an assignment for the predicates inside the grounding list
+is found, the algorithm checks whether the predicates inside the pre-
+conditions are satisfied.
+Let us consider the preconditions for the
+move_table_to_table_start action from Section 4.1:
+% Positive predicates
+[ontable(Block), at(Block, X1, Y1), available(Agent), clear(Block)],
+% Negative predicates
+[
+at(_, X2, Y2), on(Block, _), moving_table_to_table(_, Block, _, _, _,_),
+moving_table_to_block(_, Block, _, _, _, _, _)
+]
+After the first grounding step, they become the following:
+% Positive predicates
+[ontable(b1), at(b1, 0, 0), available(a1), clear(b1)],
+% Negative predicates
+[
+at(_, 0, 0), on(b1, _), moving_table_to_table(_, b1, _, _, _,_),
+moving_table_to_block(_, b1, _, _, _, _, _)
+]
+The algorithm checks whether the predicates from the first list are
+satisfied in the current state and whether the predicates from the sec-
+ond list are not present in the current state.
+Comparing them with the
+initial state as shown in Section 4.1, we can see that ontable(b1) is
+present, but at(b1, 0, 0), so this combination of predicates would al-
+ready be discarded. The first grounding that is accepted is that in which
+Block = b1, X1 = 1, Y1 = 1, Agent = a1 . Notice that the predicates
+that start with _ mean ”any”, e.g., the predicate at(_, 0, 0) checks if there
+is any predicate with name at and arity 3 that has the last two arguments
+set to 0, regardless of what the first argument is.
+By checking the different combinations of actions, the planner can extract
+a high-level TO plan. In this case, it would be something like this:
+[0] move_table_to_table_start(a1, b1, 1, 1, 2, 2)
+[1] move_table_to_table_end(a1, b1, 1, 1, 2, 2)
+[2] move_table_to_block_start(a1, b2, 3, 1, 2, 2)
+[3] move_table_to_block_end(a1, b2, 3, 1, 2, 2)
+22
+
+
+--- Page 23 ---
+At this point, the algorithm takes the mappings and it applies them to
+the previous plan. For instance, from Section 4.1 we saw that the mapping
+for move_table_to_table_start is:
+mapping(move_table_to_table_start(Agent, Block, X1, Y1, X2, Y2),
+[
+move_arm_start(Agent, X1, Y1), move_arm_end(Agent, X1, Y1),
+grip_start(Agent), grip_end(Agent),
+move_arm_start(Agent, X2, Y2), move_arm_end(Agent, X2, Y2),
+release_start(Agent), release_end(Agent)
+]
+).
+Hence, we would change the previous plan with:
+[0] move_table_to_table_start(a1, b1, 1, 1, 2, 2)
+[1] move_arm_start(a1, 1, 1)
+[2] move_arm_end(a1, 1, 1)
+[3] grip_start(a1)
+[4] grip_end(a1)
+[5] move_arm_start(a1, 2, 2)
+[6] move_arm_end(a1, 2, 2)
+[7] release_start(a1)
+[8] release_end(a1)
+[9] move_table_to_table_end(a1, b1, 1, 1, 2, 2)
+[10] move_table_to_block_start(a1, b2, 3, 1, 2, 2)
+[11] move_arm_start(a3, 3, 1)
+[12] move_arm_end(a1, 3, 1)
+[13] grip_start(a1)
+[14] grip_end(a1)
+[15] move_arm_start(a1, 2, 2)
+[16] move_arm_end(a1, 2, 2)
+[17] release_start(a1)
+[18] release_end(a1)
+[19] move_table_to_block_end(a1, b2, 3, 1, 2, 2)
+5.2. Partial-Order Plan Generation
+The next step is to analyse the total-order plan in search of all possible
+causal relationships. This is done by looking for actions that enable other
+actions (enablers).
+In addition, we extract all the resources that can be
+allocated and used for the execution of the task. This step will be important
+for the next phase of the planning process, the MILP problem, in which
+the resources will be re-allocated allowing for shrinking the makespan of the
+23
+
+
+--- Page 24 ---
+plan. In this work, the only resource considered is the robotic agent, but
+this limitation could easily be removed by modifying the KB. To this end,
+we define a special predicate, named resource/1, that allows us to specify
+the resources.
+Given an action ai, another action aj is an enabler of ai if it either adds
+a literal l satisfying one or more preconditions of ai, or it removes a fluent
+violating one or more preconditions of ai, and if ai happens after aj:
+aj ∈Enbl(ai) ⇐⇒
+t(ai) > t(aj)∧
+((l ∈pre(ai) ∧add(l) ∈eff(aj))∨
+(¬l ∈pre(ai) ∧del(l) ∈eff(aj)))
+(1)
+It is important to note that we consider an action aj /∈Enbl(ai) if there is
+at least a fluent l that is not a resource. If all the fluents and their arguments
+that would make aj an enabler of ai are resources, then aj is not considered
+an enabler, as this relationship depends on the assignment of the resources,
+which comes with the optimisation step.
+Besides the enablers added corresponding to the classical definition, we
+also enforce the following precedence constraints:
+– When we expand a mapping m(αi) of a high-level durative action αi
+and reach the ending action αi⊣, then we add all previous durative
+actions as enablers until the corresponding start action. For example,
+assume that m(αi) = {αj, αk}, this means that the total-order plan
+will be the sequence {αi⊢, αj⊢, αj⊣, αk⊢, αk⊣, αi⊣}. It follows that αi⊢is
+an enabler of αi⊣, but also all intermediate actions are part of the set
+of its enablers as they must be completed in order for αi to end.
+^
+a∈m(αi)
+a ∈Enbl(αi⊣).
+(2)
+– When we expand a mapping, all actions in the mapping must have the
+start of the higher-level action as one of the enablers. For instance,
+after the previous example, αj⊢, αj⊣, αk⊢, αk⊣have αi⊢as an enabler.
+^
+a∈m(αi)
+α⊢∈Enbl(ai).
+(3)
+The algorithm that manages this extraction is shown in Algorithm 2. For
+ease of reading, we define R ⊆F as the set of fluents that are resources.
+24
+
+
+--- Page 25 ---
+The algorithm FIND ENABLERS takes the total-order plan and, starting
+with the first action in the plan, it extracts all the causal relationships be-
+tween the actions. The auxiliary function IS ENABLER tests whether an ac-
+tion aj is an enabler of an action ai by checking the properties of Equation 1
+plus the precedence constraints just described. Finally, notice that the literal
+checked to be present (absent) in both additive (subtractive) effects must not
+contain arguments that are part of the resources R. For example, consider
+the case in which an action ai needs the precondition l(x1, x2, x3) and aj pro-
+vides the predicate, then if at least one of x1, x2, x3 is in R, aj is an enabler
+of ai, otherwise it is not. This ensures that only causal relationships that do
+not depend on the resources are extracted at this time. The precedence of
+the resources will be defined and discussed in Section 5.3.
+5.2.1. Running Example – Partial-Order Plan
+Once we have applied the mappings as before, we have the full TO plan.
+We want to extract information from this, which will then be exploited to
+improve the plan for multiple agents.
+This is done by examining all the
+actions and checking which are their enablers. For instance, the 10th action,
+move_table_to_block_start(a1, b2, 3, 1, 2, 2), has as a precondition
+the following predicate clear(Block2), Block2=b1, which is true only when
+the 9th action has applied its effects. Since b1 is not part of the resources,
+the algorithm will state that a9 is an enabler of a10.
+If the second move were to move a block to another position on the table,
+hence independent of the first move, then the algorithm would not set a9 as
+an enabler of a10, as the only reason it may do so is if the same agent is used,
+but this is known only later.
+After this step, we know the enablers for the actions (shown in squared
+brackets in the list below):
+[0] init()[]
+[1] move_table_to_table_start(a1, b1, 1, 1, 2, 2), [0]
+[2] move_arm_start(a1, 1, 1), [0,1]
+[3] move_arm_end(a1, 1, 1), [0,1,2]
+[4] grip_start(a1), [0,1,2,3]
+[5] grip_end(a1), [0,1,2,3,4]
+[6] move_arm_start(a1, 2, 2), [0,1,2,3,4,5]
+[7] move_arm_end(a1, 2, 2), [0,1,2,3,4,5,6]
+[8] release_start(a1), [0,1,2,3,4,5,6,7]
+[9] release_end(a1), [0,1,2,3,4,5,6,7,8]
+[10] move_table_to_table_end(a1, b1, 1, 1, 2, 2), [0,1,2,3,4,5,6,7,8,9]
+25
+
+
+--- Page 26 ---
+Algorithm 2: Algorithm extracting the actions enablers and the
+resources
+Data: TP = (F, DA, I, G, K)
+Result: Enablers and resources R
+FIND ENABLERS (TO P, ai)
+In
+: The total-order plan TO P, the ith action
+Out: The enablers E for all the actions in the plan
+for aj ∈TO P, aj ̸= ai do
+if IS ENABLER(aj, ai) then
+E[ai].add(aj);
+if ai ̸= TO P.back() then
+E ←FIND ENABLERS(TO P, ai+1)
+return E
+IS ENABLER (aj, ai)
+In
+: The action aj to test if it’s enabler of ai
+Out: True if aj is enabler of ai
+foreach e ∈eff(aj) do
+if (e = add(l) ∧l ∈pre(ai))) OR
+(e = del(l) ∧¬l ∈pre(ai)) OR
+(isStart(aj) ∧ai ∈m(aj)) OR
+(isEnd(aj) ∧ai ∈m(aj)) then
+X ←set of arguments of e;
+if ̸ ∃x ∈X|x ∈R then
+return True;
+return False;
+EXTRACT RESOURCES ()
+findall(X, resources(X), AllResources)
+R = make set(AllResources)
+return R
+26
+
+
+--- Page 27 ---
+[11] move_table_to_block_start(a1, b2, 3, 1, 2, 2), [0,10]
+[12] move_arm_start(a1, 3, 1), [0,11]
+[13] move_arm_end(a1, 3, 1), [0,11,12]
+[14] grip_start(a1), [0,11,12,13]
+[15] grip_end(a1), [0,11,12,13,14]
+[16] move_arm_start(a1, 2, 2), [0,11,12,13,14,15]
+[17] move_arm_end(a1, 2, 2), [0,11,12,13,14,15,16]
+[18] release_start(a1), [0,11,12,13,14,15,16,17]
+[19] release_end(a1), [0,11,12,13,14,15,16,17,18]
+[20] move_table_to_block_end(a1, b2, 3, 1, 2, 2), [0,10,11,12,13,14,15,16,17,18,19]
+[21] end(), [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+From this we could already notice that all the actions will be carried
+out in sequence. We also see that in this step we add two fictitious actions,
+init and end. This simply represents the start and the end of the plan,
+respectively. init is an enabler of all the actions in the plan and end has all
+the other actions as enablers, which means that the plan can be considered
+finished only when all the actions have been executed.
+As for the resources, we first extract all the possible resources by looking
+at the predicates resource(X) in the KB, as shown in Section 4.1. Then we
+assign the type of resources used to each action by checking action per action
+which resources they are using. This is useful because it will provide MILP
+with the basis to correctly allocate the different resources to the actions.
+Resources:
+[0] agent-2
+Resources list:
+[0] agent-[agent(a1),agent(a2)]
+Resources required by action:
+[4] 6-[agent]
+[9] 1-[agent]
+5.3. Partial-Order Plan Optimization
+The last part of the planning module, shown in Figure 1, is the optimi-
+sation module which allows for shrinking the plan by scheduling the task
+(temporal plan) and allocating the resources. In order to do this, we in-
+stantiate a MILP problem, the solution of which must satisfy constraints
+ensuring that we are not violating precedence relationships and invalidating
+the obtained planned.
+We start by taking the work from [29], in which the authors describe how
+it is possible to obtain a plan with lower makespan by reordering some tasks.
+In particular, we adopt the following concepts from [29]:
+27
+
+
+--- Page 28 ---
+– Let f(l) = {a ∈DA|l ∈eff(a)} be the set of actions that achieve a
+literal l, and
+– let p(l, a, r) .= a < r ∧
+^
+ai∈f(l)\{a,r}
+(ai < a ∨ai > r) be the temporal
+constraint stating which is the last achiever a of an action r for a
+literal l.
+The constraints that must hold are the following:
+_
+aj∈f(l)\{a}
+p(l, aj, a).
+(4)
+Which states that at least an action with effect l should occur before a.
+^
+aj∈f(l)
+
+p(l, aj, a) →
+^
+at∈f(¬l)\{a}
+(at < aj ∨at > a)
+
+.
+(5)
+^
+aj∈f(¬l)∧l∈pre(a)
+((aj < a⊢) ∨(aj > a⊣)).
+(6)
+Which state that between the last achiever aj of a literal l for an action a
+and the action a there must not be an action at negating said literal. This
+condition is also enforced by Equation 6 that constrains actions negating the
+literal to happen before the action a has started or after it has finished.
+Notice though that in this work, the authors have considered achievers
+and not enablers. The difference is that an action aj is an achiever of ai
+if aj adds a fluent l that is needed by aj.
+Enablers instead consider the
+case in which fluents are also removed. Since these constraints only consider
+achievers and not enablers, we need to extend them. We redefine the previous
+as:
+– let f(l) = {a ∈DA|add(l) ∈eff(a)} be the set of actions that achieve
+a literal l, and
+– let f(¬l) = {a ∈DA|del(l) ∈eff(a)} be the set of actions that delete
+a literal l, and
+– let F(l) = f(l) ∪f(¬l) be the union set of f(l) and f(¬l), and
+– let p(l, a, r) .= a < r ∧
+^
+ai∈F(l)\{a,r}
+(ai < a ∨ai > r) be the last enabler a
+of an action r for a literal l.
+Consequently, we need to:
+28
+
+
+--- Page 29 ---
+– revise Equation 4 to include all enablers:
+_
+aj∈F(l)\{a}
+p(l, aj, a).
+(7)
+– add two constraints similar to Equation 5 and Equation 6 to ensure that
+a predicate that was removed is not added again before the execution
+of the action:
+^
+aj∈f(¬l)
+
+p(l, aj, a) →
+^
+at∈f(l)\{a}
+(at < aj ∨at > a)
+
+.
+(8)
+^
+aj∈f(l)∧(¬l)∈pre(a)
+((aj < a⊢) ∨(aj > a⊣)).
+(9)
+The second aspect of the MILP problem concerns resource allocation.
+Indeed, as stated before, there are some predicates that are parameterised
+on resources, e.g., available(A) states whether an agent A is available or
+not, but it does not ground the value of A. One possibility would be to
+allocate the resources using Prolog, as done in [11], but this choice is greedy
+since Prolog grounds information with the first predicate that satisfy A. To
+reduce the makespan of the plan and improve the quality of the same, we
+delay the grounding to an optimisation phase, leaving Prolog to capture the
+relationships between actions.
+As a first step, we are also going to assume that all the actions coming
+from a mapping of a higher-level action and that are not mapped into lower-
+level actions shall maintain the same parameterised predicates as the higher-
+level action. So the constraint in Equation 10 must hold.
+^
+aj∈m(ai)∧m(aj)/∈M
+
+
+^
+p(xi)∈pre(ai)∧p(xj)∈pre(aj)
+xi = xj
+
+.
+(10)
+Moreover, for these constraints, we will consider only predicates that are part
+of the set K, that is predicates that are not resources R ∩K = ∅.
+The objective now is three-fold:
+– identify a cost function,
+– summarise the previous constraints, and
+– construct a MILP problem to be solved.
+29
+
+
+--- Page 30 ---
+In this work, the first point is straightforward: we want to minimise the
+makespan, i.e., the total duration required to complete all tasks or activities.
+For the second point, we are trying to find a way to put the previous
+constraints, Equations (2), (3) and (5) to (10) in a compact formulation or
+structure. We opted to extract the information regarding the enablers using
+Prolog and to place it into a N × N matrix C, where N is the number of
+actions and each cell Cij is 1 if ai is an enabler of aj (without considering
+resources), 0 otherwise.
+We now need to address the resource allocation aspect, specifically, how
+to distribute the available resources R among the various actions. When
+performing this task, there are primarily two factors to consider:
+– A resource cannot be utilised for multiple actions simultaneously.
+– If two actions share the same resource, they must occur sequentially,
+meaning one action enables the other.
+For the first factor, we need to make sure that, for each resource type
+r ∈R, the number of actions using the resource at the same time must
+not be higher than the number of resources of that type available, as shown
+in Equation 11.
+∀t ∈{t0, tEND}, |r| ≥
+X
+ai∈TO
+t ∈{ai⊢, ai⊣} ∧(∃l(xxx) ∈pre(ai)|r ∈xxx) .
+(11)
+The second factor must instead be merged with also the precedence con-
+straints embedded in C. In particular, we want to express that actions ai, aj
+are in a casual relationship if Cij = 1 or if they share the same resource. This
+can be expressed with the following constraint:
+Cij ∨∃r ∈R : r ∈fl(ai) ∧r ∈fl(aj)
+(12)
+Note that fl(a) was defined in the problem definition paragraph and repre-
+sents the set of variables and literals used by the predicates in the precondi-
+tions of a.
+Finally, we need to set up the MILP problem that consists in finding
+an assignment of the parameters, of the actions’ duration and of the causal
+relationships, such that the depth of the graph G representing the plan is
+minimised. This problem can be expressed as shown in Equation 13.
+30
+
+
+--- Page 31 ---
+min
+P,T
+tEND
+s.t.
+Cij ∨∃r ∈R : r ∈fl(ai) ∧r ∈fl(aj),
+∀t ∈{t0, tEND},
+|r| >
+X
+ai∈TO
+(t ∈{ai⊢, ai⊣} ∧∃l(xxx) ∈pre(ai)|r ∈xxx) .
+(13)
+As mentioned before, the MILP part is implemented in Python3 using
+OR-Tools from Google.
+The program also checks the consistency of the
+PO matrix C, by making sure that all the actions must have a path to
+the final actions.
+The output of the MILP solution is basically an STN,
+which describes both the causal relationship between the actions and also
+the intervals around the duration of the actions. The initial and final nodes
+of the STN are factitious as they do not correspond to actual actions, but
+they simply represent the start and the end of the plan. The STN is extracted
+by considering the causal relationship from the C matrix taken as input, and
+by adding the causal relationship given by the resource allocation task. Once
+we have the STN, we can extract a BT, which can then be directly executed
+by integrating it in ROS2.
+5.3.1. Plan Optimization – Example
+As we said at the end of subsubsection 5.2.1 on the running example, that
+particular plan is not optimisable as the actions are executed in sequence.
+Let’s then consider a slight modification, which consists in finding a plan to
+move the two blocks in two new positions instead of stacking them in one
+position. We also have a new agent that can be used to carry out part of the
+work. Our new plan and actions’ enablers are the following one:
+[0] init()[]
+[1] move_table_to_table_start(a1, b1, 1, 1, 1, 2), [0]
+[2] move_arm_start(a1, 1, 1), [0,1]
+[3] move_arm_end(a1, 1, 1), [0,1,2]
+[4] grip_start(a1), [0,1,2,3]
+[5] grip_end(a1), [0,1,2,3,4]
+[6] move_arm_start(a1, 1, 2), [0,1,2,3,4,5]
+[7] move_arm_end(a1, 1, 2), [0,1,2,3,4,5,6]
+[8] release_start(a1), [0,1,2,3,4,5,6,7]
+[9] release_end(a1), [0,1,2,3,4,5,6,7,8]
+[10] move_table_to_table_end(a1, b1, 1, 1, 1, 2), [0,1,2,3,4,5,6,7,8,9]
+31
+
+
+--- Page 32 ---
+[11] move_table_to_table_start(a1, b2, 3, 1, 3, 2), [0,10]
+[12] move_arm_start(a1, 3, 1), [0,11]
+[13] move_arm_end(a1, 3, 1), [0,11,12]
+[14] grip_start(a1), [0,11,12,13]
+[15] grip_end(a1), [0,11,12,13,14]
+[16] move_arm_start(a1, 3, 2), [0,11,12,13,14,15]
+[17] move_arm_end(a1, 3, 2), [0,11,12,13,14,15,16]
+[18] release_start(a1), [0,11,12,13,14,15,16,17]
+[19] release_end(a1), [0,11,12,13,14,15,16,17,18]
+[20] move_table_to_table_end(a1, b2, 3, 1, 3, 2), [0,10,11,12,13,14,15,16,17,18,19]
+[21] end(), [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+Indeed, action a9 may or may not be an enabler of action a10 depending on
+the resource allocation of the MILP solution. If we have just one agent, then
+a9 ∈Enbl(a10), if instead we have more than one agent, then a9 ̸∈Enbl(a10)
+and the two actions can be executed at the same time and the plan would
+be:
+[0] init()
+[1] move_table_to_table_start(a1, b1, 1, 1, 1, 2)
+[2] move_arm_start(a1, 1, 1)
+[3] move_arm_end(a1, 1, 1)
+[4] grip_start(a1)
+[5] grip_end(a1)
+[6] move_arm_start(a1, 1, 2)
+[7] move_arm_end(a1, 1, 2)
+[8] release_start(a1)
+[9] release_end(a1)
+[10] move_table_to_table_end(a1, b1, 1, 1, 1, 2)
+[11] move_table_to_block_start(a2, b2, 3, 1, 3, 2)
+[12] move_arm_start(a2, 3, 1)
+[13] move_arm_end(a2, 3, 1)
+[14] grip_start(a2)
+[15] grip_end(a2)
+[16] move_arm_start(a2, 3, 2)
+[17] move_arm_end(a2, 3, 2)
+[18] release_start(a2)
+[19] release_end(a2)
+[20] move_table_to_block_end(a2, b2, 3, 1, 3, 2)
+[21] end()
+6. Behavior Tree Generation and Execution
+The conversion from STN to BT is taken from [30]. We summarize it
+here and refer the reader to the main article.
+32
+
+
+--- Page 33 ---
+An STN is a graph with a source and a sink, which can be artificial nodes
+in the sense that they represent the start and the end of the plan. Each node
+can have multiple parent and multiple children.
+Having multiple parents
+implies that the node cannot be executed as long as all the parents haven
+not finished and, whereas, having multiple children implies that they will be
+executed in parallel.
+With this knowledge we can extract a behavior tree, which is a structure
+that, starting from the root, ticks all the nodes in the tree until it finishes
+the last leaf. Nodes in the tree can be of different types:
+– action: they are an action that has to be executed;
+– control: they can be either SEQUENCE or PARALLEL and state how the
+children nodes must be executed;
+– condition: they check whether a condition is correct or not;
+The ticking of a node means that the node is asked to do its function, e.g., if
+a SEQUENCE node is ticked, then it will tick the children one at a time, while
+if a condition node is ticked, it will make sure that the condition is satisfied
+before continuing with the next tick.
+The algorithm to convert the STN to a BT starts from the fictitious initial
+node (init), and for every node it checks:
+– The number of children: if there is only one child, then it is a SEQUENCE
+node, otherwise it is a PARALLEL node.
+– The number of parents: if there are more than one parents then the
+node must wait for all the parents to have ticked, before being executed.
+– The type of the action: if it is a low-level action, then it is inserted into
+the BT for execution, otherwise it will not be included.
+7. Experimental Validation
+In this section, we first present the implementation details of the frame-
+work, followed by a description of the experiments conducted and the results
+obtained. We then discuss the scalability of PLANTOR before concluding
+with a final discussion on the proposed framework.
+7.1. Implementation Details
+The different parts have been developed and devised to ensure modularity,
+efficiency, and scalability.
+The implementation process involved a careful
+selection of algorithms and data structures to optimize performance.
+In
+33
+
+
+--- Page 34 ---
+Q: role: “user” content: | How is your code divided?
+A: role: “assistant” content: | The high-level knowledge-base is composed of 4 parts:
+- `init` section, which contains the initial state of the environment; - `goal` section,
+which contains the final state of the environment; - `KB ` section, which contains
+all the information that is not modified by the actions; - `actions` section, which
+contains the description of the actions that can be performed by the agents. For
+example, the predicate `available(A)`, which states that the agent A is available, is
+a predicate that is modified by the actions and should be placed in the `init` section.
+On the other hand, the predicate `pos(X,Y)`, which states that the position (X,Y)
+is a possible position for the agents, is a predicate that is not modified by the actions
+and should be placed in the `KB ` section.
+(a) General example passed to the LLM to understand how the KB should be structured.
+Q: role: “user” content: | Can you generate a Prolog snippet of code that describes
+the initial and final states for the following scenario? Given an initial state in which
+there are two blocks b1, b2 in position (1,1) and (2,2) respectively, move the block b1
+to position (3,3) and place b2 on top of b1 using an agent, which is initially available
+and it will also be available at the end.
+A: role : “assistant” content: | Sure. The problem states that at the beginning there
+are two blocks on the table: we shall use the `ontable(Block)` predicate to describe
+this. To state the position of the blocks we’ll use the predicate `at(Block, X, Y)`.
+Since both blocks do not have a block over them they are clear to be picked-up, so
+we use the predicate `clear(Block)` to describe this. Finally, the agent is available at
+the beginning, so we’ll use the predicate `available(Agent)`. Here is the initial state:
+```init
+init_state([
+ontable(b1), ontable(b2), at(b1,1,1), at(b2,2,2), clear(b1), clear(b2), available(a1)
+]).
+```
+At the end, the problem states that block b2 is on top of block b1, so we’ll use
+the predicate `on(BlockTop, BlockBottom)` to describe that `BlockTop` is on top
+of `BlockBottom`. Notice that now only b2 will be pickable, hence we’ll have the
+predicate `clear(b2)`, but not the predicate `clear(b1)`. Here is the code for the goal
+state:
+```goal
+goal_state([
+ontable(b1), on(b2,b1), at(b1,3,3), at(b2,3,3), clear(b2), available(a1)
+]).
+```
+(b) Example on an action generated for the blocks world scenario
+Figure 3: Instance of the examples fed to the LLM through few-shot prompting.
+34
+
+
+--- Page 35 ---
+the following subsections, we provide a detailed account of each component,
+outlining design choices, technical challenges, and solutions adopted.
+KMS. As already explained, the KB has been written in Prolog to exploit
+its inference capabilities. This programming language allows to define sim-
+ple predicates and then construct and solve complex queries. The generate
+knowledge-base is loaded inside the planner and for such reason it must
+be formatted accordingly. The tests were conducted using two main mod-
+els: GPT4o and GPT4 with 128K tokens. The models were guided on how
+to format the output through few-shot prompting and CoT. The examples
+ranged from general information regarding the structure of the framework 3a,
+to examples providing more details regarding a particular scenario 3b.
+Planner. The planner has been implemented using two programming lan-
+guages: Prolog, which ensures the feasibility of the extracted plan for total-
+order and partial-order extraction, and Python 3, which is used to develop
+the MILP solver with OR-Tools1.
+Behavior Trees. While BTs have become a de facto standard for executing
+robotic tasks, no universally accepted framework exists for their creation
+or execution.
+Some notable examples include PlanSys2 [31] and Behav-
+iorTree.CPP [32]. PlanSys2 is tightly integrated with ROS2; beyond merely
+executing behavior trees, it can also derive feasible plans from a knowledge-
+base. In contrast, BehaviorTree.CPP is a more general framework that en-
+ables the creation and execution of BTs from an XML file. We chose Behav-
+iorTree.CPP since our main objective was to execute APIs from a BT, which
+is easily represented using an XML file, while also maintaining maximum gen-
+erality. Nevertheless, BehaviorTree.CPP also offers a ROS2 wrapper, which
+can easily be integrated.
+7.2. Results
+In this section, we show experimental results obtained using our frame-
+work. In doing so, we follow the flow of the system, starting with the KB
+generation, proceeding with tests on the planning phase and finally showing
+a whole example that was run on real-life robots.
+We focused on two scenarios: blocks world and the building of an arch.
+The former is a very well known use-case [28], in which a series of blocks are
+1https://developers.google.com/optimization
+35
+
+
+--- Page 36 ---
+set available on a table and they must be moved from an initial configura-
+tion to a final one. We change this use-case by enabling to have multiple
+agents moving the blocks, in order to highlight the cooperation abilities of
+the framework, and by explicitly stating the positions of the blocks as co-
+ordinates. The later scenario is a variation of the blocks world in which we
+consider blocks of different type and the goal is to construct a more com-
+plex building, such as an arch, by first building more elementary structures
+and then combining them. For the blocks world scenario, we run 4 different
+queries, while 2 more were run for the arch.
+The queries and scenarios vary in terms both of complexity and gener-
+ality. For instance, example 5 of blocks world is more complicated for the
+planner as it consists of multiple objects in the scenario, similarly example 3
+of blocks world is challenging for the planner as it requires to find a longer
+plan. Though, both examples have a precise description of the scenario and
+are not particularly challenging for the KMS module as they respect the
+structure of the examples passed to the LLM. On the contrary, example 4
+of blocks represents a challenge for the LLMs as, while the domain is still
+blocks world, the description is much more general requiring the LLM to do
+some inference on some predicates.
+7.2.1. KB Generation
+The tests for the generation of the KB are divided in three parts. A
+first one is for the validation check carried out at the beginning (shown in
+Table 1), a second one for the generation of the high-level (HL) KB (Table 2),
+and a final one for the generation of the low-level (LL) KB (Table 3).
+Validation. For the validation phase, we also wanted to evaluate whether a
+smaller model, such as GPT3.5-turbo, could correctly detect whether the
+queries were correct or whether they contained errors. It is important to
+mention that, in order to correctly query this model, the number of examples
+had to be reduced as the tokens limit would not allow it to run otherwise.
+This is also one of the main limitation that led has not to use such model for
+KB generation.
+As it is possible to see in Table 1, the experiments mixed also some wrong
+queries to detect whether the model could recognize errors:
+– Example 2.a in the blocks world scenario introduces an error in the
+HL description stating that a block should be moved, but it does not
+information on where it should be moved;
+36
+
+
+--- Page 37 ---
+– Example 5.a in the blocks world scenario introduces an error in the
+LL description by having a different number of agents than the HL
+description;
+– Example 2.a of the arch scenario introduces an error in the HL descrip-
+tion suggesting that the architrave to be put on top is shorter than the
+gap between the pillars.
+Blocks world
+Arch
+1
+2.a
+2.b
+3
+4
+5.a
+5.b
+1
+2.a
+2.b
+GPT3.5 Turbo
+X
+✓*
+X
+X
+X
+X
+X
+X
+✓*
+X
+GPT4 - 120K
+X
+✓
+X
+✓
+✓
+✓
+✓
+X
+✓
+X
+GPT4o
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓*
+✓
+Table 1: Results for the consistency check on the input queries. The ∗indicates that the
+model considered it correct for the wrong reason.
+As shown in Table 1, the difference between GTP3.5 and GPT4 is striking,
+with GPT4o that manages to consistently detect whether errors are present
+or not in the queries. GPT3.5 manages to correctly detect that the example
+2.a in the blocks world scenario is wrong, although it states that it is wrong
+because . Similarly, both GPT3.5 and GPT4o detect an error in example
+2.a of the arch scenario, although they both state that the problem is in,
+while this is not the case. Strangely enough, GPT4 with 120K tokens fails
+the easier queries, e.g. example 1, while instead managing to evaluate more
+difficult queries, which were instead correct.
+In general, GPT4 managed to evaluate correctly the majority of the cases
+and especially to correctly flag the wrong queries.
+KB Generation. The KB generation represents a more complex step for a
+generative model. Indeed even both GPT4-128K and GPT4o do not manage
+to get all the predicates correctly. The process to check the output of the
+LLMs went as follows:
+– First, the framework extracts the correct parts of the output to a Prolog
+file containing the KB ;
+– Then we include the file in the planner and test whether it provides a
+plan for the HL KB ;
+– If it manages to find a plan, then we record the plan and the time
+taken, otherwise we enable some debugging functions that help the
+user understand why a problem is not solvable and fix the KB.
+37
+
+
+--- Page 38 ---
+– Finally, the same process for the LL KB is repeated.
+From Table 2, we can see that GPT4o manages to almost produce correct
+HL knowledge-bases for all the examples, except for example 2 of the arch
+scenario.
+In this case, the error was a minor misunderstanding: GPT4o
+correctly generated all the four parts (general KB, initial and final states,
+and actions), but the action place_architrave_start did not have the
+predicate ontable(Arch) between the positive preconditions, meaning that
+it would never be able to pick and place the architrave on top of the pillars.
+GPT4 with 120K tokens does not manage to create any HL KB com-
+pletely correct. That said, in many cases, the errors were minor and easily
+identifiable. For example, in examples 3 and 4 of the blocks world scenario,
+GPT4-120K made the same single mistake in which it used the predicate
+pos(X,Y) inside the preconditions instead than using it inside the predicates
+to be grounded on the general KB. This meant that the planner could not
+find a feasible plan since there is no predicate in the initial state that corre-
+sponds to pos(X,Y). More strangely, this error was made only for one of the
+four actions that GPT4-120K had to generate.
+As for the two examples in the arch scenario, GPT4-128K did not manage
+to provide a correct interpretation of the task of placing the architrave on
+top of the pillars. While it provided an action for placing the architrave, it
+did not create a predicate in the final state or within the effects of the action,
+meaning that the plan would never schedule that action correctly. Interest-
+ingly enough, it added predicates in the general KB that would correctly
+describe the pillars and the architrave (if used in the actions), which is not
+an expected behaviour since it is not part of the fed examples.
+Blocks world
+Arch
+1
+2
+3
+4
+5
+1
+2
+GPT4 - 120K
+X(2,14)
+X(3,17)
+X(1,2)
+X(1,2)
+X(2,2)
+X
+X
+GPT4o
+✓
+✓
+✓
+✓
+✓
+✓
+X(1,1)
+Table 2: Results for the generation of the HL knowledge-base (KB) using the models listed
+on the left. A ✓indicates that the model’s output was completely correct, while X denotes
+incorrect output. In cases where a fixable number of errors occurred, the first value inside
+parentheses represents the number of distinct errors, and the second value indicates the
+number of changes required to fix the KB.
+As for the lower-level KB, the situation is more complex as it is possible
+to see in Table 3. In this case, GPT4 - 128K fails the majority of cases. Even
+38
+
+
+--- Page 39 ---
+trying to fix the generated KB would take much time. On the other hand,
+while GPT4 makes some mistakes, the majority of errors seems to be related
+to the creation of mappings. For instance, in example 2 of blocks world and
+in example 1 of Arch, GPT4o generated the following mapping;
+mapping(move_table_to_table_start(Agent, Block, X1, Y1, X2, Y2),
+[
+ll_move_arm_start(Agent, 4, 4, X1, Y1), ll_move_arm_end(Agent, 4, 4, X1, Y1),
+ll_close_gripper_start(Agent), ll_close_gripper_end(Agent),
+ll_move_arm_start(Agent, X1, Y1, X2, Y2), ll_move_arm_end(Agent, X1, Y1, X2, Y2),
+ll_open_gripper_start(Agent), ll_open_gripper_end(Agent)
+]).
+which is wrong because it hardcodes the initial position of the movement
+to (4,4) when the arm may be in another location. The correction simply
+consists in changing the coordinates with wildcards:
+ll_move_arm_start(Agent, _, _, X1, Y1), ll_move_arm_end(Agent, _, _, X1, Y1),
+Since example 2 of blocks world and example 1 of arch contained 4 and 5
+mappings, respectively, the total numbers of correction needed for this error
+were 8 and 10, respectively.
+GPT4 with 128K tokens, also repeatedly made a mistake in the genera-
+tion of the low-level KB by changing all the predicates to low-level ones by
+prefixing all of them with ll_. This would not be too much of a problem,
+if it had changed also the names of the predicates inside the high-level ac-
+tions. Not having done so, means that the high-level actions would not be
+schedulable and hence the planner would not find a feasible plan.
+Blocks world
+Arch
+1
+2
+3
+4
+5
+1
+2
+GPT4 - 120K
+X
+X
+X
+X
+X
+X
+X
+GPT4o
+✓
+X(1,8)
+X(2,10)
+X(1,8)
+✓
+X(1,10)
+X(4,18)
+Table 3: Results for the generation of the LL knowledge-base (KB) using the models listed
+on the left. A ✓indicates that the model’s output was completely correct, while X denotes
+incorrect output. In cases where a fixable number of errors occurred, the first value inside
+parentheses represents the number of distinct errors, and the second value indicates the
+number of changes required to fix the KB.
+It also should be highlighted that the majority of the mistakes that were
+made in the generation of the KB happened within the generation of the
+39
+
+
+--- Page 40 ---
+Blocks world
+Arch
+1
+2
+3
+4
+5
+1
+2
+HL
+29, 108
+46, 108
+37, 108
+25, 108
+133, 108
+27, 140
+28, 144
+LL
+44, 153
+59, 146
+47, 146
+31, 138
+136, 150
+44, 178
+45, 184
+Table 4: The number of predicates in the final KBs using GPT4o after having fixed possible
+mistakes. The first value is the number of grounded predicates, either in the general KB
+or in the states, while the second is the number of lifted predicates in the actions.
+actions or of the mappings. While this may be expected given the much
+more complex nature of the tasks, it also means that it may be possible to
+better train the LLMs to prevent this from happening and consequently gen-
+erating much more reliable KBs. The only model that introduced mistakes
+outside of the actions set is GPT4-128K for example 1 of the arch scenario,
+in which case the model did not understand correctly that there should be a
+place_architrave_{start,end} action in the actions set, but instead tried
+to insert it inside the general preconditions.
+Given the number of predicates in these KBs (Table 4), the ability of a
+generative model to produce a nearly complete KB requiring only minimal
+modifications is highly beneficial.
+7.2.2. Planner
+In this section, we evaluate the performance of the planner.
+We first
+start by evaluating the experiments also used in Section 7.2.1 and then we
+provide a more general evaluation on the scalability of the planner. From
+now on we consider KBs generate by GPT4o and manually fixed. All the
+tests were executed on a laptop running an Intel i7-1260P and 32GB of RAM
+with Ubuntu 22.04, SWI-Prolog version 8.4.2, Python3.10 and pyswip version
+0.2.7.
+We report the times for the different planning phases for each experiment
+in Table 5. In particular, “HL TO Plan” and “LL TO Plan” correspond to
+the extraction of a high-level total-order plan and subsequent generation of a
+total-order plan by applying the mappings (Section 5.1), “PO and Resource
+Extraction” corresponds to the phase in which Prolog parses the KB and
+actions to extract the resources they depend on (Section 5.2), “Total Prolog”
+refers to the time required by the Python wrapper to compute the whole
+planning phase using Prolog (Section 7.1) and “MILP – BT” refers to the
+final optimization and BT extraction part (Section 5.3 and Section 6).
+40
+
+
+--- Page 41 ---
+Blocks world
+Arch
+Examples
+1
+2
+3
+4
+5*
+1
+2
+HL TO Plan Steps
+2
+4
+8
+6
+6
+6
+6
+HL TO Plan
+30.81
+1640.14
+23083.37
+81.18
+39067.04
+2633.67
+520.62
+LL TO Plan
+0.11
+0.22
+0.37
+0.31
+0.45
+0.27
+0.27
+PO and Resources
+Extraction
+0.15
+0.70
+2.83
+1.95
+1.63
+1.45
+1.48
+Total Prolog
+63.81
+1731.89
+23512.65
+102.65
+39559.44
+2726.42
+550.69
+MILP – BT
+399.63
+264.48
+292.95
+268.50
+276.98
+262.94
+258.29
+Table 5: Execution times (in milliseconds) for the planning phase. For example 5 of blocks
+world, see Table 6.
+We can see that the highest complexity of extracting a feasible plan is to
+actually find the TO plan for the HL KB. This part of the search is indeed
+the most complex one since it is not guided and requires the Prolog search
+to backtrack multiple times in order to find a feasible plan. On the contrary,
+once the plan is found, checking that the preconditions of the low-level action
+when substituting the mappings and consequently applying their effects is
+much faster. Also the extraction of the causal relationship requires just a
+fraction of the time.
+It is also worth noticing that the length of the HL TO plan greatly affects
+the performance of the planner. Indeed, while example 3 of blocks world is
+not much different in the number of predicates from example 2 of blocks
+world, the computational time changes dramatically when the required num-
+ber of steps to find a solution increases.
+As for the MILP problem, we can see that the time required is bigger
+than the PO part, although it decreases in proportion when considering more
+complex task. This is to be expected as in this case the bottleneck of the
+MILP part would be the initialization of the problem with OR-Tools.
+For example 5 of the blocks world scenario, GPT4o managed to produce a
+correct KB, but it could not be solved by the planner in the given timeout of 1
+minute when considering the whole complexity of the problem. When using
+the same set of actions and predicates on a smaller example, the planner
+managed to find a solution.
+This example proves to be a good test-bed
+for evaluating how the planner performs when varying of the number of
+predicates. The example considers 20 blocks, 24 possible positions and 3
+agents, but only asks to move 3 blocks from their initial positions to another
+position and stack them. Indeed, while not even the HL planner could find
+41
+
+
+--- Page 42 ---
+a feasible plan after 1 minute with all the predicates, we can change the
+number of predicates in the general KB and see how the planner performs.
+The results are reported in Table 6, where the columns indicate the number
+of blocks and the number of positions considered in the general KB. It is
+important to notice that the time to compute the PO plan, also contains the
+time to compute the TO plan and the MILP problem solution contains the
+time for the whole planning process.
+#
+positions
+#
+blocks
+HL TO
+Plan
+LL TO
+Plan
+PO and Resources
+Extraction
+Total
+Prolog
+MILP
+– BT
+9
+5
+20.35
+0.31
+2.22
+56.92
+282.51
+14
+5
+67.40
+0.43
+2.22
+91.39
+273.77
+14
+10
+834.86
+0.39
+2.00
+720.04
+274.71
+19
+5
+133.99
+0.49
+2.07
+146.52
+272.23
+19
+10
+1788.25
+0.48
+1.98
+1490.48
+268.52
+19
+15
+7220.93
+0.39
+1.67
+7102.22
+275.89
+24
+5
+230.70
+0.59
+2.05
+233.63
+274.85
+24
+10
+2765.18
+0.50
+1.78
+2512.15
+266.85
+24
+15
+12522.42
+0.46
+1.67
+12580.44
+277.66
+24
+20
+39067.04
+0.45
+1.63
+39559.44
+276.94
+Table 6: Execution times (in milliseconds) for the planning phase on example 5 of the
+blocks world scenario at the changing of the number of predicates in the KB.
+We can see that the planner scales quite poorly when increasing the num-
+ber of grounding predicates. This, in conjunction with the length of the HL
+TO plan, is the biggest bottleneck of the planner since every time it has to
+ground a predicate, it creates a backtracking point to which it can return to
+check alternative possibilities when encountering an unfeasible state. More-
+over, we can see that the performance worsen more when changing the num-
+ber of positions rather than the number of blocks. This example-dependant:
+multiple actions move a block from one position to another, meaning that
+each time an action is to be scheduled, the planner must ground not just
+one position, but two different positions, worsening the performance by a
+quadratic factor.
+7.3. Real-Life Experiment
+Finally, we present a real-life experiment run on two robots from Universal
+Robots, a UR3e and a UR5e, equipped respectively with a 2f85 gripper from
+Robotiq and an mGrip gripper from Soft Robotics. The scenario consisted in
+42
+
+
+--- Page 43 ---
+Figure 4: The real-life experiment we carried out using two Universal Robots arms.
+cooperating the two robots in order to correctly build an arch made of three
+blocks: 1 for each pillar plus 1 for the architrave. In Figure 4, it is possible
+to see the setup used.
+We positioned the blocks on the table and provided a query similar to the
+ones used for the arch scenario by changing the coordinates of the blocks.
+We then used PLANTOR to extract a BT which was then parsed by
+BehaviorTree.ROS2 allowing for direct communication with the ROS2 servers
+connected to the real robots.
+The robots were able to move according to the plan and correctly build
+the arch.
+7.4. Discussion & Future Work
+The experimental results presented in Section 7.2.1 and Section 7.2.2
+highlight the effectiveness of the proposed framework in knowledge gener-
+ation, planning, and execution. The system successfully translates natural
+language descriptions into executable knowledge-bases and generates plans
+that maintain logical consistency and feasibility. However, an in-depth dis-
+cussion is necessary to assess the quality of the results, their applicability in
+real-world scenarios, and the challenges that remain.
+7.4.1. Effectiveness of the Planning Approach
+The results demonstrate that the framework efficiently produces high-
+level and low-level knowledge-bases, enabling the generation of feasible plans.
+The time required for HL plan generation is the most computationally ex-
+pensive step, as shown in Table 6, where execution time increases with the
+number of predicates in the KB. This is expected, as a larger state space
+43
+
+
+--- Page 44 ---
+leads to an exponential growth in possible plan combinations. Nevertheless,
+the system efficiently applies logical inference to extract meaningful plans,
+making it a viable tool for complex task execution.
+Furthermore, the MILP-based optimization step ensures that extracted
+plans are not only logically valid but also optimized in terms of resource
+allocation and execution order. The results suggest that the framework can
+successfully balance multiple constraints, ensuring feasible solutions even in
+scenarios requiring parallel execution of tasks.
+In the future, to improve the efficiency of the total-order plan generation,
+we could replace the planner with a PDDL-based state-of-the-art planner
+through a compilation phase. While this would enhance performance in plan
+generation, it would also reduce the explainability and modularity of the KB.
+Indeed, having a logical KB offers a wide range of opportunities for inference
+and automated reasoning (e.g., to perform consistency checks or to enable
+the composition of fluents through the abstraction refinement relation). A
+possible solution to combine the advantages of both approaches could be to
+use the logic-based system to generate PDDL problems, then leverage the
+heuristics of state-of-the-art planners to generate total-orders.
+7.4.2. Scalability and Limitations
+One key limitation observed in the experiments is the scalability of the
+planning process. The computational complexity significantly increases with
+the number of objects and possible positions, leading to longer execution
+times and, in some cases, an inability to find a feasible plan within a given
+timeout. This behavior is particularly evident in Example 5 of the blocks
+world scenario, where the planner struggles with a large number of predi-
+cates. Future improvements could focus on reducing search space complexity,
+leveraging heuristics, or integrating state-of-the-art planners that optimize
+partial-order planning.
+Another limitation concerns the current separation between task planning
+and motion planning. While the framework successfully generates high-level
+plans, it does not explicitly consider motion constraints of the robotic agents.
+This may lead to cases where a theoretically feasible plan is not applicable
+in the real-world.
+To address this issue, we are working on the definition of Task and Mo-
+tion Planning (TAMP) problem [33], which could incorporate the informa-
+tion required to set the parameters for the correct execution of an action.
+One possible solution is to include parametric Dynamic Movement Primi-
+44
+
+
+--- Page 45 ---
+tives [34] as actions within the framework. Such actions could be derived
+from human observations through imitation learning approaches and would
+provide a more accurate estimation of an actions’ duration. This could also
+address another significant limitation of the approach. When solving the
+MILP problem (Section 5.3), we must set upper and lower bounds on the
+duration of actions. At present, we use fairly conservative values for these
+bounds; having a more precise estimation would significantly improve the
+quality of the generated plan.
+7.4.3. Role of LLMs in KB Generation
+The use of LLMs in knowledge-base generation has proven effective, but
+certain limitations remain. While models like GPT-4o exhibit strong gen-
+eralization abilities, they sometimes introduce errors in predicate mapping
+and action descriptions. The results show that passing too many examples
+in a single query can lead to reduced accuracy, with the model occasion-
+ally ”forgetting” earlier examples. Addressing this issue through fine-tuning
+techniques could improve the consistency and reliability of generated KBs.
+Another limitation of the framework stems from a persistent problem
+with LLMs: hallucinations and random behaviours. In our case, this means
+that even sophisticated models sometimes introduce errors in the generated
+KB. This issue can be mitigated by providing correct examples, but in some
+experiments, we observed that too many examples could have adverse effects,
+with the LLM becoming more confused and forgetting the examples provided
+at the start. As future work, we are planning to investigate whether fine-
+tuning an LLM with an ad hoc dataset may enhance the generative model’s
+abilities.
+Additionally, we are exploring ways to enable automated error
+correction by using another LLM to parse errors detected by the SWI-Prolog
+interpreter.
+7.4.4. Real-World Applicability
+Despite the aforementioned limitations, the proposed framework has sig-
+nificant potential for real-world applications. Its ability to generalize across
+different task descriptions makes it suitable for use in multi-agent systems
+where adaptability and automation are crucial. Industrial settings, such as
+robotic assembly lines or autonomous warehouse management, could benefit
+from a system that dynamically generates and optimizes task plans based on
+high-level instructions.
+45
+
+
+--- Page 46 ---
+Future work should focus on expanding the framework’s robustness by
+incorporating uncertainty handling, probabilistic reasoning, and real-time re-
+planning capabilities. This would enable the system to adapt to unforeseen
+changes in the environment, further bridging the gap between automated
+planning and practical deployment in robotics applications.
+8. Related Work
+In this section, we are going to discuss, to the best of our knowledge, the
+current state of the art and highlight the gap we are filling.
+8.1. Knowledge-base Generation
+Knowledge representation is an essential component that endows robots
+with the cognitive abilities necessary to autonomously execute tasks and
+make informed decisions [35, 36]. This capability underpins the development
+of systems that can simulate common-sense reasoning in robotic applications.
+Typically, knowledge systems rely on ontologies to formally describe dis-
+crete pieces of information and the relationships among them. In this con-
+text, the OpenRobots Ontology (ORO) [37] is designed to store symbolic-
+level knowledge and events by transforming previously acquired symbols into
+interconnected concepts. Built upon the framework of semantic triples [38],
+ORO facilitates a server architecture where information can be both pushed
+and pulled, thereby supporting dynamic knowledge management.
+Ontologies are frequently tailored to specific domains. For example, the
+Ontology for Robotic Orthopedy Surgery (OROSU) [39] is dedicated to the
+medical domain, integrating healthcare ontologies with robotic systems to
+represent the critical knowledge required during surgical interventions. Simi-
+larly, the Worker-cobot ontology [40] focuses on industrial applications, sup-
+porting collaborative tasks in shared, closed environments through a frame-
+work that leverages multi-agent systems and business rules.
+In addition to these domain-specific systems, advanced knowledge pro-
+cessing frameworks such as KnowRob [41], now in its second version [42],
+demonstrate a more comprehensive approach by incorporating environmental
+data into the reasoning process. Unlike systems that rely solely on deductive
+closure computation, such as ORO, KnowRob integrates inferential reason-
+ing via Prolog, thus enabling more dynamic and context-aware knowledge
+management. Furthermore, KnowRob2 expands its capabilities by integrat-
+ing semantic web information and utilizing a game engine to facilitate the
+46
+
+
+--- Page 47 ---
+learning of action-related knowledge. This integration allows the system to
+”reason with its eyes and hands,” meaning that it can construct a realis-
+tic representation of its environment. Consequently, KnowRob2 is able to
+abstract and generalize common knowledge from experiential data, thereby
+enhancing its adaptability to novel situations. One of the main limitations
+of systems like KnowRob2 is related to the generation of its knowledge base,
+which involves complex syntactical structures that complicate the mainte-
+nance and scalability of the system, potentially hindering efficient inference
+and integration of new data. Large Language Models (LLMs) can address
+this limitation by leveraging their ability to parse and generate natural lan-
+guage, thereby producing more flexible and context-aware representations
+that reduce the reliance on rigid, manually defined syntactic structures in
+knowledge base generation.
+8.2. LLM for KB Generation
+Various approaches leveraging LLMs to construct generalizable planning
+domains have been proposed, demonstrating their capability to convert nat-
+ural language descriptions of planning problems into robot-oriented plan-
+ning domains. These approaches aim to reduce the dependency on hand-
+crafted, domain-specific components traditionally required for solving plan-
+ning problems. For instance, the ISR-LLM approach proposed in [43] ad-
+dresses long-horizon planning tasks by converting natural language instruc-
+tions into PDDL representations and utilizing an LLM-based planner that
+incorporates the Chain-of-Thought (CoT) mechanism [27] to iteratively re-
+fine and plan tasks through intermediate steps. Similarly, the work presented
+in [44] employs LLMs as a generalized planner by using CoT summarization
+to enhance planning performance, although this method still necessitates
+predefined planning domain representations.
+It is noted that LLMs are not ideally suited to function as standalone
+planners [45], a limitation that motivates the development of more robust
+frameworks integrating the strengths of both LLMs and symbolic planning.
+The LLM+P framework [46], for example, capitalizes on the advantages of
+classical planners by using LLMs to generate PDDL problem files based on
+natural language descriptions, after which classical planners are employed to
+solve the problem, thus avoiding the pitfalls of using LLMs as direct plan-
+ners. Likewise, the approach described in [47] presumes the existence of task-
+related PDDL domains and uses action-by-action prompting to reconstruct
+the planning domain through LLMs. Despite their promise, these methods
+47
+
+
+--- Page 48 ---
+are constrained by the assumption that the problem description is provided
+as a lifted PDDL domain file. Also the TwoStep approach [48] integrates
+LLMs with classical PDDL planners for multi-agent task planning by de-
+composing a unified agent plan into partially independent subgoals that can
+be allocated to a main agent and a helper agent. This decomposition, though
+innovative, is limited to two agents and focuses primarily on the coordination
+between them.
+In contrast to these methods, another research direction seeks to gen-
+erate the planning domain without any reliance on a symbolic foundation.
+For example, the NL2Plan approach introduced in [49] employs LLMs with
+CoT prompting to produce a complete PDDL description, and if errors are
+detected, a feedback loop is established whereby the LLM is queried to re-
+fine the domain description. Additionally, the LLM3 framework [50] offers
+an LLM-based task and motion planning (TAMP) solution in which LLMs
+propose symbolic action sequences and select continuous action parameters,
+supported by a feedback loop that allows motion failures to iteratively refine
+both the symbolic planning domain and the action parameters.
+In contrast to these existing approaches, our method decomposes the
+decision-making process into two distinct layers, thereby facilitating the map-
+ping of high-level symbolic abstractions to low-level actions with continuous
+parameters. In this framework, a Prolog knowledge base is generated for
+each layer. Rather than relying solely on instantaneous actions, our approach
+employs durative actions that account for temporal constraints and enable
+the parallel execution of tasks by multiple agents. This novel technique en-
+hances both the flexibility and efficiency of the system, making it more adept
+at tackling complex planning tasks that require temporal coordination and
+multi-agent collaboration.
+8.3. LLM for Planning
+Despite inherent challenges related to executing reliable multi-step rea-
+soning and integrating temporally extended and symbolic information within
+LLM architectures, an alternative research trajectory has emerged that inves-
+tigates their potential to function as planners or final policy decision-makers
+in robotic task planning. For example, the Language Models as Zero-Shot
+Planners approach presented in [51] leverages LLMs to generate task plans
+without relying on domain-specific action knowledge; however, its limited
+environmental awareness and absence of feedback mechanisms often result in
+plans that include unavailable or contextually irrelevant objects. In contrast,
+48
+
+
+--- Page 49 ---
+the SayCan framework introduced in [52] exploits the semantic capabilities of
+LLMs to process natural language commands and employs affordance func-
+tions to evaluate the log-likelihood of success for a given skill in the cur-
+rent state, thereby selecting the most probable action; nevertheless, its focus
+on immediate actions restricts its capacity to generate efficient long-horizon
+plans.
+Further advancing this field, the ProgPrompt framework [53] transforms
+available actions and their associated parameters into pythonic programs,
+comprising API calls to action primitives, summarizing comments, and as-
+sertions for tracking execution, which are then used to query an LLM for plan
+generation, effectively bridging the gap between high-level task descriptions
+and actionable robot directives. Similarly, the Code as Policies approach [54]
+utilizes LLMs to produce programs, Language Model-Generated Programs,
+that are subsequently executed with Python safety checks. Additionally, the
+TidyBot system evaluated in [55] demonstrates robust performance on both
+text-based benchmarks and real-world robotic platforms, reinforcing the po-
+tential of LLM-based text summarization to generalize robotic tasks without
+requiring additional training.
+Complementing these methodologies, the Common sense-based Open-
+World Planning framework [56] integrates commonsense knowledge extracted
+from LLMs with rule-based action knowledge from human experts, enabling
+zero-shot prompting for planning and situation handling in open-world en-
+vironments. In a related vein, language-guided robot skill learning [57] uti-
+lizes LLMs to generate language-labeled robot data that is distilled into a
+robust multi-task, language-conditioned visuo-motor policy, resulting in a
+33.2% improvement in success rates across five domains. Moreover, the RE-
+FLECT framework [58] employs multisensory observations to automatically
+identify and analyze failed robot actions, providing valuable insights for re-
+fining language-based planning.
+Other approaches constrain LLM planners to a feasible set of activities,
+as seen in [59], where plans produced by LLMs are translated from nat-
+ural language into executable code. The Interactive Task Planning (ITP)
+framework [60] further exemplifies this trend by employing a dual-LLM sys-
+tem: one LLM generates a high-level plan based on task guidelines, user
+requests, and previously completed steps, while a second LLM maps these
+high-level steps to low-level functions from a robot skill library.
+Finally,
+the Text2Motion framework [61] addresses long-horizon tasks by integrating
+symbolic and geometric reasoning; classical task and motion planning solvers
+49
+
+
+--- Page 50 ---
+alternate between planning and motion synthesis, using an LLM alongside
+a library of skills—each featuring a policy and parameterized manipulation
+primitive—to communicate environmental state in natural language. This
+framework also assumes prior knowledge of task-relevant objects and their
+poses to facilitate the planning of feasible trajectories.
+These approaches highlight both the promise and the current limitations
+of LLMs in planning and decision-making, as well as the ongoing efforts to
+overcome the limitations of such systems by integrating traditional planning
+paradigms and feedback mechanisms [62].
+9. Conclusion
+In this work, we introduce a framework that leverages LLMs and logic
+programming to address a fundamental challenge in modern robotics: gener-
+ating explainable and reliable plans from natural language specifications. The
+core idea of this paper is to use LLMs to generate robot-oriented logic KB.
+By combining LLM -driven KB generation with Prolog’s symbolic reasoning
+and a final mixed-integer linear optimisation step, our approach produces
+fully executable plans that are compositional, reusable, and suitable for par-
+allel execution. Furthermore, converting the final plan into a Behaviour Tree
+ensures compatibility with ROS2, enabling straightforward deployment on
+different robotic platforms.
+The experimental results in block-world and arch-building scenarios sug-
+gest that LLMs can reliably capture domain knowledge with only modest
+guidance and verification. Although some manual consistency checks remain
+necessary, the underlying Prolog-based structure guarantees plan correctness,
+explainability, and reusability. In general, this research highlights the syn-
+ergy between advanced language models and symbolic methods, paving the
+way towards more intuitive and adaptable robotic systems.
+Future work will focus on further reducing manual overhead for KB val-
+idation.
+This task is probably within reach by exploiting the fine-tuning
+capabilities of the most recent LLMs. We also aim to test the approach in a
+broad range of applications involving diverse robotic resources. To improve
+efficiency in generating the total-order plan, we are considering the appli-
+cation of state-of-the-art PDDL planners (e.g., OPTIC [12] or FastDown-
+ward [13]), which integrate several sophisticated heuristics to efficiently com-
+pute solution plans. Moreover, we will investigate the adoption of techniques
+50
+
+
+--- Page 51 ---
+integrating task and motion planning to develop a more precise and high-
+performance algorithm for extracting feasible plans in multi-agent robotics
+applications.
+Acknowledgements
+Co-funded by the European Union under NextGenerationEU (FAIR -
+Future AI Research - PE00000013), under project INVERSE (Grant Agree-
+ment No.
+101136067), under project MAGICIAN (Grant Agreement n.
+101120731) and by the project MUR PRIN 2020 (RIPER - Resilient AI-Based
+Self-Programming and Strategic Reasoning - CUP E63C22000400001).
+References
+[1] E. Ugur, A. Ahmetoglu, E. Oztop, Neuro-symbolic robotics (01 2025).
+doi:10.13140/RG.2.2.25854.09283.
+[2] D. Paulius, Y. Sun, A survey of knowledge representation in ser-
+vice robotics, Robotics and Autonomous Systems 118 (2019) 13–30.
+doi:https://doi.org/10.1016/j.robot.2019.03.005.
+URL
+https://www.sciencedirect.com/science/article/pii/
+S0921889018303506
+[3] W. F. Clocksin, C. S. Mellish, Programming in PROLOG, Springer
+Science & Business Media, 2003.
+[4] M. Tenorth, M. Beetz, Knowrob: A knowledge processing infrastruc-
+ture for cognition-enabled robots, The International Journal of Robotics
+Research 32 (5) (2013) 566–590. arXiv:https://doi.org/10.1177/
+0278364913481635, doi:10.1177/0278364913481635.
+URL https://doi.org/10.1177/0278364913481635
+[5] T. C. Son, E. Pontelli, N.-H. Nguyen, Planning for multiagent using asp-
+prolog, in: International Workshop on Computational Logic in Multi-
+Agent Systems, Springer, 2009, pp. 1–21.
+[6] C. Bitter, D. A. Elizondo, Y. Yang, Natural language processing: a
+prolog perspective, Artificial Intelligence Review 33 (2010) 151–173.
+51
+
+
+--- Page 52 ---
+[7] A. Lally, P. Fodor, Natural language processing with prolog in the ibm
+watson system, The Association for Logic Programming (ALP) Newslet-
+ter 9 (2011) 2011.
+[8] M. Helmert, Changes in PDDL 3.1, unpublished summary from
+the
+IPC
+2008
+website:
+https://ipc08.icaps-conference.org/
+deterministic/ (2008).
+[9] M. Cashmore, M. Fox, D. Long, D. Magazzeni, B. Ridder, A. Carrera,
+N. Palomeras, N. Hurt´os, M. Carreras, Rosplan: Planning in the robot
+operating system, in: ICAPS, AAAI Press, 2015, pp. 333–341.
+[10] F. Mart´ın, J. G. Clavero, V. Matell´an, F. J. Rodr´ıguez, Plansys2: A
+planning system framework for ROS2, in: IROS, IEEE, 2021, pp. 9742–
+9749.
+[11] E. Saccon, A. Tikna, D. De Martini, E. Lamon, L. Palopoli, M. Roveri,
+When prolog meets generative models: a new approach for managing
+knowledge and planning in robotic applications, in: 2024 IEEE Inter-
+national Conference on Robotics and Automation (ICRA), 2024, pp.
+17065–17071. doi:10.1109/ICRA57147.2024.10610800.
+[12] J. Benton, A. J. Coles, A. Coles, Temporal planning with preferences
+and time-dependent continuous costs, in: ICAPS, AAAI, 2012.
+[13] M. Helmert, The fast downward planning system, J. Artif. Intell. Res.
+26 (2006) 191–246.
+[14] M. Ghallab, D. S. Nau, P. Traverso, Automated planning - theory and
+practice, Elsevier, 2004.
+[15] W. Cushing, S. Kambhampati, Mausam, D. S. Weld, When is temporal
+planning really temporal?, in: M. M. Veloso (Ed.), IJCAI 2007, Proceed-
+ings of the 20th International Joint Conference on Artificial Intelligence,
+Hyderabad, India, January 6-12, 2007, 2007, pp. 1852–1859.
+URL http://ijcai.org/Proceedings/07/Papers/299.pdf
+[16] A. Coles, M. Fox, K. Halsey, D. Long, A. Smith, Managing concurrency
+in temporal planning using planner-scheduler interaction, Artif. Intell.
+173 (1) (2009) 1–44.
+52
+
+
+--- Page 53 ---
+[17] A. J. Coles, A. Coles, M. Fox, D. Long, COLIN: planning with con-
+tinuous linear numeric change, J. Artif. Intell. Res. 44 (2012) 1–96.
+doi:10.1613/jair.3608.
+URL https://doi.org/10.1613/jair.3608
+[18] SWI-Prolog, SWI-Prolog, accessed on 13/09/2023 (2023).
+URL https://www.swi-prolog.org/
+[19] A. Vaswani, N. M. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N.
+Gomez, L. Kaiser, I. Polosukhin, Attention is all you need, in: NIPS,
+2017.
+URL https://api.semanticscholar.org/CorpusID:13756489
+[20] M. Shanahan, Talking about large language models (2023).
+arXiv:
+2212.03551.
+[21] W. X. Zhao, K. Zhou, J. Li, T. Tang, X. Wang, Y. Hou, Y. Min,
+B. Zhang, J. Zhang, Z. Dong, Y. Du, C. Yang, Y. Chen, Z. Chen,
+J. Jiang, R. Ren, Y. Li, X. Tang, Z. Liu, P. Liu, J.-Y. Nie, J.-R. Wen,
+A survey of large language models (2023). arXiv:2303.18223.
+[22] B. Mesk´o, E. J. Topol, The imperative for regulatory oversight of large
+language models (or generative ai) in healthcare, npj Digital Medicine
+6 (1) (2023) 120.
+[23] A. Levy, E. Karpas, Understanding natural language in context, Pro-
+ceedings of the International Conference on Automated Planning and
+Scheduling 33 (1) (2023) 659–667. doi:10.1609/icaps.v33i1.27248.
+URL
+https://ojs.aaai.org/index.php/ICAPS/article/view/
+27248
+[24] K. Valmeekam, A. Olmo, S. Sreedharan, S. Kambhampati, Large lan-
+guage models still can’t plan (a benchmark for llms on planning and
+reasoning about change) (2023). arXiv:2206.10498.
+[25] X. Huang, L. L. Zhang, K.-T. Cheng, F. Yang, M. Yang, Fewer is more:
+Boosting llm reasoning with reinforced context pruning (2024). arXiv:
+2312.08901.
+URL https://arxiv.org/abs/2312.08901
+53
+
+
+--- Page 54 ---
+[26] Z. Hu, L. Wang, Y. Lan, W. Xu, E.-P. Lim, L. Bing, X. Xu, S. Poria,
+R. K.-W. Lee, Llm-adapters: An adapter family for parameter-efficient
+fine-tuning of large language models, arXiv preprint arXiv:2304.01933
+(2023).
+[27] J. Wei, X. Wang, D. Schuurmans, M. Bosma, brian ichter, F. Xia, E. H.
+Chi, Q. V. Le, D. Zhou, Chain of thought prompting elicits reasoning in
+large language models, in: A. H. Oh, A. Agarwal, D. Belgrave, K. Cho
+(Eds.), Advances in Neural Information Processing Systems, 2022.
+URL https://openreview.net/forum?id=_VjQlMeSB_J
+[28] N. Gupta, D. S. Nau, On the complexity of blocks-world plan-
+ning,
+Artificial Intelligence 56 (2) (1992) 223–254.
+doi:https:
+//doi.org/10.1016/0004-3702(92)90028-V.
+URL
+https://www.sciencedirect.com/science/article/pii/
+000437029290028V
+[29] A. Cimatti, A. Micheli, M. Roveri, Strong temporal planning with un-
+controllable durations: A state-space approach 29 (1). doi:10.1609/
+aaai.v29i1.9653.
+URL https://ojs.aaai.org/index.php/AAAI/article/view/9653
+[30] J. Zapf, M. Roveri, F. Martin, J. C. Manzanares, Constructing behavior
+trees from temporal plans for robotic applications (2024). arXiv:2406.
+17379.
+URL https://arxiv.org/abs/2406.17379
+[31] F. Mart´ın, J. G. Clavero, V. Matell´an, F. J. Rodr´ıguez, Plansys2: A
+planning system framework for ros2, in: 2021 IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS), IEEE, 2021, pp.
+9742–9749.
+[32] D. Faconti, Behaviortree.cpp - the c++ behavior tree library, accessed:
+2025-02-04 (2025).
+URL https://www.behaviortree.dev/
+[33] C.
+R.
+Garrett,
+R.
+Chitnis,
+R.
+Holladay,
+B.
+Kim,
+T.
+Sil-
+ver,
+L.
+P.
+Kaelbling,
+T.
+Lozano-P´erez,
+Integrated
+task
+and
+motion
+planning,
+Annual
+Review
+of
+Control,
+Robotics,
+and
+Autonomous
+Systems
+4
+(Volume
+4,
+2021)
+(2021)
+265–293.
+54
+
+
+--- Page 55 ---
+doi:https://doi.org/10.1146/annurev-control-091420-084139.
+URL
+https://www.annualreviews.org/content/journals/10.
+1146/annurev-control-091420-084139
+[34] Matteo Saveriano and Fares J Abu-Dakka and Aljaˇz Kramberger and
+Luka Peternel, Dynamic movement primitives in robotics: A tutorial
+survey, The International Journal of Robotics Research 42 (13) (2023)
+1133–1184.
+arXiv:https://doi.org/10.1177/02783649231201196,
+doi:10.1177/02783649231201196.
+URL https://doi.org/10.1177/02783649231201196
+[35] B. Bayat, J. Bermejo-Alonso, J. Carbonera, T. Facchinetti, S. Fiorini,
+P. Goncalves, V. A. Jorge, M. Habib, A. Khamis, K. Melo, et al., Re-
+quirements for building an ontology for autonomous robots, Industrial
+Robot: An International Journal 43 (5) (2016) 469–480.
+[36] S. Manzoor, Y. G. Rocha, S.-H. Joo, S.-H. Bae, E.-J. Kim, K.-J.
+Joo, T.-Y. Kuc, Ontology-based knowledge representation in robotic
+systems: A survey oriented toward applications 11 (10) 4324.
+doi:
+10.3390/app11104324.
+URL https://www.mdpi.com/2076-3417/11/10/4324
+[37] S. Lemaignan, R. Ros, L. M¨osenlechner, R. Alami, M. Beetz, ORO, a
+knowledge management platform for cognitive architectures in robotics,
+in: 2010 IEEE/RSJ International Conference on Intelligent Robots and
+Systems, IEEE, pp. 3548–3553. doi:10.1109/IROS.2010.5649547.
+URL http://ieeexplore.ieee.org/document/5649547/
+[38] S. Decker, P. Mitra, S. Melnik, Framework for the semantic web: an rdf
+tutorial, IEEE Internet Computing 4 (6) (2000) 68–73. doi:10.1109/
+4236.895018.
+[39] P.
+J.
+Gon¸calves,
+P.
+M.
+Torres,
+Knowledge
+representation
+ap-
+plied
+to
+robotic
+orthopedic
+surgery,
+Robotics
+and
+Computer-
+Integrated
+Manufacturing
+33
+(2015)
+90–99,
+special
+Issue
+on
+Knowledge
+Driven
+Robotics
+and
+Manufacturing.
+doi:https:
+//doi.org/10.1016/j.rcim.2014.08.014.
+URL
+https://www.sciencedirect.com/science/article/pii/
+S0736584514000751
+55
+
+
+--- Page 56 ---
+[40] A. R. Sadik, B. Urban, An ontology-based approach to enable knowl-
+edge representation and reasoning in worker–cobot agile manufacturing,
+Future Internet 9 (4) (2017). doi:10.3390/fi9040090.
+URL https://www.mdpi.com/1999-5903/9/4/90
+[41] M. Tenorth, M. Beetz, Knowrob: A knowledge processing infrastruc-
+ture for cognition-enabled robots, The International Journal of Robotics
+Research 32 (5) (2013) 566–590. arXiv:https://doi.org/10.1177/
+0278364913481635, doi:10.1177/0278364913481635.
+URL https://doi.org/10.1177/0278364913481635
+[42] M. Beetz, D. Beßler, A. Haidu, M. Pomarlan, A. K. Bozcuo˘glu, G. Bar-
+tels, Know rob 2.0 — a 2nd generation knowledge processing frame-
+work for cognition-enabled robotic agents, in: 2018 IEEE International
+Conference on Robotics and Automation (ICRA), 2018, pp. 512–519.
+doi:10.1109/ICRA.2018.8460964.
+[43] Z. Zhou, J. Song, K. Yao, Z. Shu, L. Ma, Isr-llm: Iterative self-refined
+large language model for long-horizon sequential task planning, in: 2024
+IEEE International Conference on Robotics and Automation (ICRA),
+2024, pp. 2081–2088. doi:10.1109/ICRA57147.2024.10610065.
+[44] T. Silver, S. Dan, K. Srinivas, J. B. Tenenbaum, L. Kaelbling, M. Katz,
+Generalized planning in pddl domains with pretrained large language
+models, Proceedings of the AAAI Conference on Artificial Intelligence
+38 (18) (2024) 20256–20264. doi:10.1609/aaai.v38i18.30006.
+URL https://ojs.aaai.org/index.php/AAAI/article/view/30006
+[45] K. Valmeekam, A. Olmo, S. Sreedharan, S. Kambhampati, Large lan-
+guage models still can’t plan (a benchmark for LLMs on planning and
+reasoning about change), in: NeurIPS 2022 Foundation Models for De-
+cision Making Workshop, 2022.
+URL https://openreview.net/forum?id=wUU-7XTL5XO
+[46] B. Liu, Y. Jiang, X. Zhang, Q. Liu, S. Zhang, J. Biswas, P. Stone,
+Llm+p: Empowering large language models with optimal planning pro-
+ficiency (2023). arXiv:2304.11477.
+[47] J. Oswald, K. Srinivas, H. Kokel, J. Lee, M. Katz, S. Sohrabi, Large
+language models as planning domain generators, in: 34th International
+56
+
+
+--- Page 57 ---
+Conference on Automated Planning and Scheduling, 2024.
+URL https://openreview.net/forum?id=C88wQIv0aJ
+[48] I. Singh, D. Traum, J. Thomason, Twostep: Multi-agent task planning
+using classical planners and large language models (2024). arXiv:2403.
+17246.
+URL https://arxiv.org/abs/2403.17246
+[49] E. Gestrin, M. Kuhlmann, J. Seipp, Towards robust LLM-driven plan-
+ning from minimal text descriptions, in: ICAPS 2024 Workshop on
+Human-Aware Explainable Planning, 2024.
+URL https://openreview.net/forum?id=NmzHuV101q
+[50] S. Wang, M. Han, Z. Jiao, Z. Zhang, Y. N. Wu, S.-C. Zhu, H. Liu,
+Llm3:large language model-based task and motion planning with motion
+failure reasoning (2024). arXiv:2403.11552.
+URL https://arxiv.org/abs/2403.11552
+[51] W. Huang, P. Abbeel, D. Pathak, I. Mordatch, Language models as zero-
+shot planners: Extracting actionable knowledge for embodied agents
+(2022). arXiv:2201.07207.
+URL https://arxiv.org/abs/2201.07207
+[52] B. Ichter, A. Brohan, Y. Chebotar, C. Finn, K. Hausman, A. Herzog,
+D. Ho, J. Ibarz, A. Irpan, E. Jang, R. Julian, D. Kalashnikov, S. Levine,
+Y. Lu, C. Parada, K. Rao, P. Sermanet, A. T. Toshev, V. Vanhoucke,
+F. Xia, T. Xiao, P. Xu, M. Yan, N. Brown, M. Ahn, O. Cortes, N. Siev-
+ers, C. Tan, S. Xu, D. Reyes, J. Rettinghouse, J. Quiambao, P. Pastor,
+L. Luu, K.-H. Lee, Y. Kuang, S. Jesmonth, K. Jeffrey, R. J. Ruano,
+J. Hsu, K. Gopalakrishnan, B. David, A. Zeng, C. K. Fu, Do as i can,
+not as i say: Grounding language in robotic affordances, in: 6th Annual
+Conference on Robot Learning, 2022.
+URL https://openreview.net/forum?id=bdHkMjBJG_w
+[53] I. Singh, V. Blukis, A. Mousavian, A. Goyal, D. Xu, J. Tremblay, D. Fox,
+J. Thomason, A. Garg, Progprompt: Generating situated robot task
+plans using large language models (2022). arXiv:2209.11302.
+URL https://arxiv.org/abs/2209.11302
+57
+
+
+--- Page 58 ---
+[54] J. Liang, W. Huang, F. Xia, P. Xu, K. Hausman, B. Ichter, P. Flo-
+rence, A. Zeng, Code as policies: Language model programs for embod-
+ied control, in: 2023 IEEE International Conference on Robotics and
+Automation (ICRA), 2023, pp. 9493–9500. doi:10.1109/ICRA48891.
+2023.10160591.
+[55] J. Wu, R. Antonova, A. Kan, M. Lepert, A. Zeng, S. Song, J. Bohg,
+S. Rusinkiewicz, T. Funkhouser, Tidybot:
+personalized robot assis-
+tance with large language models, Autonomous Robots 47 (8) (2023)
+1087–1102. doi:10.1007/s10514-023-10139-z.
+URL http://dx.doi.org/10.1007/s10514-023-10139-z
+[56] Y. Ding, X. Zhang, S. Amiri, N. Cao, H. Yang, A. Kaminski, C. Esselink,
+S. Zhang, Integrating action knowledge and llms for task planning and
+situation handling in open worlds, Autonomous Robots 47 (8) (2023)
+981–997. doi:10.1007/s10514-023-10133-5.
+URL http://dx.doi.org/10.1007/s10514-023-10133-5
+[57] H. Ha, P. Florence, S. Song, Scaling up and distilling down: Language-
+guided robot skill acquisition, in: 7th Annual Conference on Robot
+Learning, 2023.
+URL https://openreview.net/forum?id=3uwj8QZROL
+[58] Z. Liu, A. Bahety, S. Song, REFLECT: Summarizing robot experiences
+for failure explanation and correction, in: 7th Annual Conference on
+Robot Learning, 2023.
+URL https://openreview.net/forum?id=8yTS_nAILxt
+[59] Y. Ding, X. Zhang, C. Paxton, S. Zhang, Task and motion planning with
+large language models for object rearrangement, in: 2023 IEEE/RSJ
+International Conference on Intelligent Robots and Systems (IROS),
+2023, pp. 2086–2092. doi:10.1109/IROS55552.2023.10342169.
+[60] B. Li, P. Wu, P. Abbeel, J. Malik, Interactive task planning with lan-
+guage models, Transactions on Machine Learning Research (2025).
+URL https://openreview.net/forum?id=VmfWywWuYQ
+[61] K. Lin, C. Agia, T. Migimatsu, M. Pavone, J. Bohg, Text2motion: from
+natural language instructions to feasible plans, Autonomous Robots
+58
+
+
+--- Page 59 ---
+47 (8) (2023) 1345–1365. doi:10.1007/s10514-023-10131-7.
+URL http://dx.doi.org/10.1007/s10514-023-10131-7
+[62] S. Kambhampati, K. Valmeekam, L. Guan, M. Verma, K. Stechly,
+S. Bhambri, L. P. Saldyt, A. B. Murthy, Position: LLMs can’t plan,
+but can help planning in LLM-modulo frameworks, in: Forty-first Inter-
+national Conference on Machine Learning, 2024.
+URL https://openreview.net/forum?id=Th8JPEmH4z
+59

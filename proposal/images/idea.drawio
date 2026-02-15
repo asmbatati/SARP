@@ -1,0 +1,112 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36" version="29.3.6">
+  <diagram name="Elevated-Cognitive-Proxy-v2" id="v2-arch">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="human_input" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Human Intent Layer&lt;/b&gt;&lt;hr&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;User is uploading knowledge&lt;/span&gt;&lt;/div&gt;&lt;div&gt;- Textual description of the mission as .md&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;(Mission Constraints)&lt;/span&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;- Images as part of the mission description&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;(Semantic Maps/Targets)&lt;/span&gt;&lt;/div&gt;&lt;div&gt;- Voice/Text (Dynamic Command)&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="416" x="163" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="orchestrator_lane" parent="1" style="swimlane;whiteSpace=wrap;html=1;startSize=23;fillColor=#f9f7ed;strokeColor=#d6b656;" value="System Orchestrator &amp; AI Mediation Proxy" vertex="1">
+          <mxGeometry height="740" width="570" x="86" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="step1" parent="orchestrator_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;I. Parser&lt;/b&gt;&lt;div&gt;-&lt;b&gt;&amp;nbsp;&lt;/b&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Receives the user request&lt;/span&gt;&lt;div&gt;&amp;nbsp;(mission description)&lt;/div&gt;Extract entities &amp;amp; spatial constraints&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="250" x="160" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="rhombus1" parent="orchestrator_lane" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;Is mission description sufficient ?&lt;br&gt;Intent&lt;br&gt;Complete?&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="245" x="162.5" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" parent="orchestrator_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;II. Contextual Mission Planning&lt;/b&gt;" vertex="1">
+          <mxGeometry height="60" width="250" x="160" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="step3_safety" parent="orchestrator_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;III. Formal Verification&lt;/b&gt;&lt;br&gt;Check vs. Physics &amp;amp; Safety Envelopes" vertex="1">
+          <mxGeometry height="60" width="250" x="160" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="rhombus2" parent="orchestrator_lane" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Plan&lt;br&gt;Approved?" vertex="1">
+          <mxGeometry height="80" width="120" x="225" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="mod_ui" parent="orchestrator_lane" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;Modification Interface&lt;/b&gt;&lt;br&gt;Manual Adjustments" vertex="1">
+          <mxGeometry height="60" width="130" x="30" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" parent="orchestrator_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;IV.&amp;nbsp;Task assignment&lt;/b&gt;" vertex="1">
+          <mxGeometry height="60" width="250" x="160" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="monitoring" parent="orchestrator_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;V. Execution Monitor&lt;/b&gt;&lt;br&gt;Feedback &amp;amp; Control" vertex="1">
+          <mxGeometry height="60" width="250" x="160" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="r_data_store" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;b&gt;Robot Data (R-Data)&lt;/b&gt;&lt;hr&gt;- Static URDF/Specs&lt;br&gt;- Skill Ontology&lt;br&gt;- Real-time Telemetry" vertex="1">
+          <mxGeometry height="150" width="130" x="696" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="bot1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Robot (1)&lt;/b&gt;&lt;br&gt;ROS 2" vertex="1">
+          <mxGeometry height="80" width="160" x="146" y="940" as="geometry" />
+        </mxCell>
+        <mxCell id="bot2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Robot (2)&lt;/b&gt;&lt;br&gt;Micro-ROS" vertex="1">
+          <mxGeometry height="80" width="160" x="436" y="940" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="human_input" target="step1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="step1" target="rhombus1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="rhombus1" target="human_input" value="Ask for detail">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="586" y="340" />
+              <mxPoint x="586" y="70" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="rhombus1" target="step2" value="Yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="step2" target="step3_safety">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="step3_safety" target="rhombus2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="rhombus2" target="mod_ui" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="mod_ui" target="step2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="181" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="rhombus2" target="step4" value="Yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="step4" target="monitoring">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" edge="1" parent="1" source="step2" style="edgeStyle=orthogonalEdgeStyle;" target="r_data_store" value="Check Feasibility">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" edge="1" parent="1" source="monitoring" target="r_data_store" value="Sync State">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="761" y="840" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r1" edge="1" parent="1" source="step4" style="edgeStyle=orthogonalEdgeStyle;" target="bot1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="226" y="750" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r2" edge="1" parent="1" source="step4" style="edgeStyle=orthogonalEdgeStyle;" target="bot2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="516" y="750" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,1141 @@
+--- Page 1 ---
+DEXTER-LLM: Dynamic and Explainable Coordination of
+Multi-Robot Systems in Unknown Environments via
+Large Language Models
+Yuxiao Zhu2,˚, Junfeng Chen1,˚, Xintong Zhang2, Meng Guo1 and Zhongkui Li1
+Abstract— Online coordination of multi-robot systems in
+open and unknown environments faces significant challenges,
+particularly when semantic features detected during operation
+dynamically trigger new tasks. Recent large language model
+(LLMs)-based approaches for scene reasoning and planning
+primarily focus on one-shot, end-to-end solutions in known
+environments, lacking both dynamic adaptation capabilities for
+online operation and explainability in the processes of planning.
+To address these issues, a novel framework (DEXTER-LLM)
+for dynamic task planning in unknown environments, integrates
+four modules: (i) a mission comprehension module that resolves
+partial ordering of tasks specified by natural languages or
+linear temporal logic formulas (LTL); (ii) an online subtask
+generator based on LLMs that improves the accuracy and
+explainability of task decomposition via multi-stage reasoning;
+(iii) an optimal subtask assigner and scheduler that allocates
+subtasks to robots via search-based optimization; and (iv) a
+dynamic adaptation and human-in-the-loop verification mod-
+ule that implements multi-rate, event-based updates for both
+subtasks and their assignments, to cope with new features
+and tasks detected online. The framework effectively combines
+LLMs’ open-world reasoning capabilities with the optimality
+of model-based assignment methods, simultaneously addressing
+the critical issue of online adaptability and explainability. Ex-
+perimental evaluations demonstrate exceptional performances,
+with 100% success rates across all scenarios, 160 tasks and 480
+subtasks completed on average (3 times the baselines), 62%
+less queries to LLMs during adaptation, and superior plan
+quality (2 times higher) for compound tasks. Project page at
+https://tcxm.github.io/DEXTER-LLM/.
+I. INTRODUCTION
+Heterogeneous multi-robot systems have demonstrated
+significant potential in executing complex missions in un-
+structured, safety-critical environments, such as disaster re-
+sponse and search-and-rescue operations [1]. However, man-
+ual coordination of such fleets is often labor-intensive and
+demanding for human operators. To address this challenge,
+various task planning algorithms have been proposed that
+automate the decomposition of tasks into subtasks, which are
+subsequently assigned to robots. These approaches include
+model-based optimization [1], [2], [3], [4] and learning-
+based prediction [5], [6], [7]. While these methods typically
+rely on manual inputs or predefined rules for task decom-
+position, they are generally suited to small, well-defined
+The authors are with 1the College of Engineering, Peking University,
+Beijing 100871, China; and 2the Division of Natural and Applied Sciences,
+Duke Kunshan University, Suzhou 215316, China. ˚Equal contributions.
+This work was supported by the National Natural Science Foundation of
+China (NSFC) under grants 62203017, U2241214, T2121002; and by the
+Ministry of Education under grant 2021ZYA05004. Corresponding author:
+meng.guo@pku.edu.cn.
+Fig. 1: Considered scenarios of fire suppression and wildlife protection,
+where the type and number of features (water, sand, algae...) and tasks
+(suppression, rescue...) are unknown; the strategies to decompose each task
+are reasoned (via multi-stage LLMs) and assigned (via optimization) online.
+environments. In contrast, in open environments where the
+type, number, and distribution of objects and features are
+unknown, such approaches become impractical. In these
+settings, the strategy for task decomposition is unclear and
+difficult to enumerate exhaustively. For example, strategies
+for fire suppression depend on the available resources (e.g.,
+water or fire extinguisher), victim rescue strategies vary
+based on factors such as whether victims are buried under
+debris, and the unknown number of victims to be rescued
+further complicates planning. Therefore, the ability to reason
+and plan in real time, based on newly discovered features in
+dynamic and open environments, is crucial. This includes
+generating new tasks, evaluating different strategies for task
+decomposition, and computing the sequence of subtasks to
+assign to robots. Achieving this with guarantees on perfor-
+mance and correctness remains an open problem.
+A. Related Work
+1) Task Planning in Robotics: Long-term robotic tasks
+should be decomposed into a sequence of subtasks that are
+executable by the deployed robots [1], [2]. For static and
+known environments, such decomposition can be achieved
+through classical methods, such as: manual rules, PDDL
+formulations [8], and linear temporal logic (LTL) specifi-
+cations [9]. which require extensive domain expertise and
+exhibit limited adaptability to open and dynamic environ-
+ments due to hard-coded symbolic representations [10], [11].
+Recent advances leverage LLMs to find potential strategies
+and moreover generalize to different scenes. Frameworks
+such as SayCan [12] probabilistically map skills to sub-
+tasks, while others translate natural language into structured
+models such as PDDL [13], [14], [15] or and behavior
+trees [16]. However, these methods mostly focus on single-
+arXiv:2508.14387v1  [cs.RO]  20 Aug 2025
+
+
+--- Page 2 ---
+robot scenarios, often overlooking the complexities of multi-
+robot systems, such as task allocation and coordination. This
+limitation is particularly evident in dynamic environments
+where the collaboration between robots is essential.
+2) LLM-based Multi-robot Task Planning: The efficiency
+of multi-robot task planning relies on hierarchical archi-
+tectures for mission prioritization, task decomposition, and
+spatio-temporal scheduling [2], [17]. While conventional
+optimization methods [1], [4] fail in open and dynamic
+environments due to rigid constraints [3], LLM-based ap-
+proaches [18], [19] leverage commonsense reasoning but suf-
+fer from insufficient formal verification [12], [20], [21], [22]
+or guarantees on the quality of the generated plans. Hybrid
+frameworks like ROCO [7] and SMART-LLM [5] integrate
+LLMs with optimization, yet exhibit critical gaps: ROCO
+faces context explosion in large-scale deployments, while
+SMART-LLM lacks adaptability to dynamic resource-task
+constraints. There are three key limitations across existing
+systems, e.g., LLM-GenPlan [23], LiP-LLM [24] and afore-
+mentioned work: open-loop architecture without verification
+or explainability, inadequate response for various online
+events, and missing failure recovery. Although hierarchical
+methods like COHERENT [6] enable closed-loop recovery,
+they cannot guarantee optimality for time-sensitive or long-
+term tasks. Recent hybrid approaches combining LLMs with
+graph search, e.g., the generalized mission planner [20],
+improves adaptability but lacks real-time responsiveness and
+online recovery [25]. Therefore, our proposed framework
+overcomes these limitations by integrating LLMs’ open-
+world reasoning with model-based optimization methods,
+enabling dynamic adaptation, human-in-the-loop verification,
+and explainable planning for multi-robot coordination.
+B. Our Method
+To overcome these limitations, we propose DEXTER-
+LLM—an acronym for Dextrous Task EXecution and
+Reasoning with Large Language Models— an automated
+framework for dynamic task coordination of multi-robot
+fleets in open and unknown environments, as shown in
+Fig. 1. It does not require any explicit modeling of potential
+semantic features within the environment, can handle newly-
+detected features and tasks online, and can ensure correctness
+and optimality of the task assignment. Specifically, it first
+abstracts a set of partially-ordered tasks from natural lan-
+guages or LTL formulas. Then, by incorporating the robot
+description and real-time scene, LLMs generate the plausible
+strategies to decompose each task into executable subtasks
+with temporal-logical constraints via multi-stage reasoning.
+In addition, these subtasks encoded as layered directed
+acyclic graphs (DAGs) are fed into a subtask scheduler
+that assigns sequences of subtasks to each robot. More
+importantly, different from static and known environments,
+a multi-rate adaptation scheme is proposed that reacts to
+new features or tasks online by different modules at different
+events. The proposed framework is shown to be generalizable
+owing to the chained logic reasoning of LLMs, verifiable by
+human feedback and the explicit constraints, explainable via
+the multi-module structure and model-based optimization,
+and scalable to large number of tasks. Extensive numeri-
+cal experiments are conducted to validate these properties
+against different baselines in various scenarios.
+Main contributions of this paper are two-fold: (i) a ver-
+satile task coordination framework for heterogeneous multi-
+robot systems in open and unknown environments, which is
+generalizable, verifiable, explainable and scalable; (ii) the
+seamless integration of LLMs and the model-based task
+planner, which paves the way for new applications in open-
+world automated task planning.
+II. PROBLEM DESCRIPTION
+Consider a fleet of heterogeneous robots that are capable
+of different skills to interact with the environment, e.g.,
+perception and manipulation. The description of these skills
+are given as structured texts. The environment is partially
+or fully unknown, meaning that how the robots can interact
+with the environment is unknown. Nonetheless, the fleet is
+given a high-level mission description in natural language,
+which typically includes exploration and other reactive tasks
+with different priorities upon observing different features.
+The planning objective is to: first comprehend the mission
+description in terms of involved tasks and their temporal
+relations; then generate and decompose the task into feasible
+subtasks, according to the online observations; assign the
+subtasks to robots to maximize task completion; and react to
+execution delays, failures and new observations online.
+III. PROPOSED SOLUTION
+A. Overview of DEXTER-LLM
+As shown in Fig. 2, DEXTER-LLM is an online task plan-
+ning framework enabling multi-robot systems to dynamically
+generate subtasks through real-time environmental feedback.
+1) Mission
+Comprehension:
+This module processes
+human-specified mission objectives, such as: task types, pri-
+orities, temporal requirements, by first translating them into
+verifiable LTL formulas [26]. It then abstracts tasks through
+accepting paths in the nondeterministic B¨uchi automaton
+(NBA), yielding a directed acyclic graph (DAG) where nodes
+denote tasks and edges enforce temporal constraints.
+2) Subtask Generation: This module takes as inputs the
+set of tasks, the global scene description, robot description,
+and historical logs. Through multi-stage prompting, LLMs
+analyze scene semantics to derive: feasible task decomposi-
+tion strategies; and temporal-logic constraints, e.g., preced-
+ing, parallel. The output is a layered DAG where each task
+node expands into strategy-specific DAGs.
+3) Subtask Assignment and Scheduling: This module
+processes the layered DAG, environmental states (explored
+map), and system status (robot conditions, task and fea-
+ture distributions). Employing branch-and-bound search with
+integer programming, it optimizes subtask allocation and
+schedule while ensuring the aforementioned constraints and
+minimizing the overall makespan. The output specifies the
+local plan of each robot as the timed sequence of actions
+with precedence constraint at specific locations.
+
+
+--- Page 3 ---
+Fig. 2: Overview of the proposed framework, which includes four core modules: the abstraction of partially-ordered tasks from natural languages or LTL
+formulas (left); the generation of plausible strategies to decompose each task into executable subtasks via LLMs (middle); the subtask assignment and
+scheduling via model-based optimization (right); and the human-in-the-loop online adaptation and verification (bottom).
+4) Online Adaptation and Human-in-the-loop Verifica-
+tion: This module integrates the aforementioned three mod-
+ules to handle real-time contingencies by processing dynamic
+inputs, including new features, emergent tasks, execution
+status updates, and robot failures. Execution updates are
+verified by human operators and fed back to update local
+plans. New types and instances of different features and tasks
+are handled by different modules for efficiency.
+B. Module of Mission Comprehension
+1) Natural Language to LTL Formulas: For intuitiveness,
+the team-wise mission description can be given in natural
+languages, following certain templates. Namely, it should
+contain how the system should behave in the nominal sce-
+nario, and how the system should react upon new observa-
+tions. For explainability and non-ambiguity, this description
+can be translated into LTL formulas as follows:
+φ fi φnorm
+ľ
+¯eP ¯
+E
+l
+`
+φ¯e
+obs Ñ ♢φ¯e
+rep
+˘
+,
+where φnorm is the nominal task; ¯E is set of events that can
+be triggered by online observations; φ¯e
+obs is a propositional
+formula over the same propositions indicating event ¯e P ¯E;
+and φ¯e
+rep is the associated response. Specifically, if the
+observed proposition φ¯e
+obs is fulfilled, the response task φ¯e
+rep
+should be fulfilled. The full semantics and syntax of LTL are
+omitted here for brevity; see e.g., [27]. The NL2TL translator
+from [26] is adopted to derive the mission formulas φ, with
+some domain-specific modification.
+2) DAG of Tasks: Once the mission formula φ is derived,
+a relaxed partially ordered set (R-poset) is proposed in
+the our earlier work [3], to abstract the essential temporal
+constraints among the tasks. In particular, the R-poset for φ
+is a 3-tuple Pφ “ pΩφ, ĺφ, ‰φq: (I) Ωφ is the set of
+tasks; (II) ĺφĎ Ωφ ˆ Ωφ is the “precedence” relation:
+If pωh, ωℓq Pĺφ, then ωℓcan only be started after ωh is
+started. (III) ‰φĎ Ωφ ˆ Ωφ is the “exclusion” relation: If
+pωh, ωℓq P‰φ, then tasks ωh, ωℓcannot be executed simul-
+taneously. The complete set of R-posets Pφ is as expressive
+as the original formula and the associated NBA [3]. The
+algorithmic details are omitted here for brevity. Lastly, for
+convenience, the R-poset is encoded as a DAG, where nodes
+are tasks, and the labeled and directed edges represent the
+relation of precedence and exclusion. For instance, a mission
+is described as: “Fully explore the area. After inspection,
+always extinguish detected fires, rescue detected victims,
+prioritize large fires over small ones, and severe victims over
+mild ones.” and the associated LTL formula is given by:
+ϕ “ pl♢expq ^ l
+`
+insp ^ pfire Ñ ♢extq ^ phm Ñ
+♢resq ^ pphm ^ fireq Ñ ♢pres ^ ♢extqq
+˘
+^ l
+`
+plf ^
+sfq Ñ ♢pext sf ^ ♢ext lfq
+˘
+^ l
+`
+pshm ^ mhmq Ñ
+♢pres shm ^ ♢res mhmq
+˘
+, where the propositions are
+related to observations or skills of the robots. The associated
+DAG is shown in Fig. 2.
+C. Module of Subtask Generation
+1) Guided Multi-stage Reasoning via LLMs: Given the set
+of tasks derived from the module of mission comprehension,
+it remains to be determined how each task can be accom-
+plished by the robotic fleet, particularly given the semantic
+features within the environment. To handle open and un-
+known environments, the logic and reasoning capabilities of
+LLMs are utilized, especially the ability to perform deductive
+reasoning over multiple steps. However, different from the
+majority of work [21] that relies on one-shot inference via
+LLMs, this work proposes a sequential multi-stage procedure
+to guide the reasoning of LLMs, which is shown to improve
+significantly the context awareness, accuracy and consistency
+of the resulting decomposition. More specifically, as shown
+in Fig. 2, it follows three sequential stages: (I) Context
+Analysis. The purpose of this stage is to filter out past and
+irrelevant observations or events received from the global
+scene description. (II) Meta Policy Tuning: Updates the
+meta policy from the filtered observations. For instance, upon
+finding new type of resources, new strategies are generated.
+The updated meta policy then guides LLMs to perform more
+accurate reasoning. (III) Subtask Guide: Given the complex-
+ities in subtask sequencing, such as temporal relationships
+and conflicts of resources, directly generating a standardized
+sequence is challenging for LLMs. The stage of subtask
+guide builds on the above outputs, allowing the LLM to focus
+on task complexities and improve consistency. (IV) Subtask
+Sequences: The strategies as sequences of subtasks are
+
+
+--- Page 4 ---
+Instruction:
+‚ Role: You are an expert in emergency rescue.
+‚ Mission: You should utilize the facilities and robots
+you have to efficiently extinguish the fire and rescue
+the injured person.
+‚ What to do: Carefully read the following info to
+understand the situation and fulfill the mission.
+Robots Team Description:
+‚ operating drone: has flexible arm and hand, and
+skills: lift and hold, lay down and manipulate.
+‚ transporting cart: is used to transport people
+or items, and skills: carry and move to destination.
+‚ fire extinguishing drone: is used to extin-
+guish fires, and its water tank is empty in the begin-
+ning, and skills: refill water tank, spray water.
+‚ fire extinguishing cart: is used to extin-
+guish fires, and its water tank is empty in the be-
+ginning, and skills: use fire extinguisher, refill water
+tank, spray water.
+Context Analysis Example: The primary task is to extin-
+guish the fire, identified as flame, and there is an injured
+person requiring rescue. The environment includes a de-
+tected water reservoir.
+Resources: fire extinguisher
+Task: [small fire, large fire, mild injury, severe injury]
+Fig. 3: Outline of the prompt for the stage of “Context Analysis”.
+generated and encoded as layered DAG and JSON formats,
+and fed into the subsequent module for allocation.
+2) Design of Prompt: The prompt for each stage is
+designed with a consistent core framework including in-
+struction and robots description, while incorporating stage-
+specific elements. For the stage of “context analysis”, the
+prompt includes instruction for specifying the role, mission
+and guide of LLMs, followed by the current environmental
+context such as tasks and resources, and lastly an example
+for structured outputs. For the stage of “meta policy tuning”,
+the prompt augments the core structure with the results from
+context analysis, along with the original meta policy, the
+adaptation rules. The stage of “subtask guide” integrates the
+updated meta policy and the results from context analysis
+into the core structure, with an intermediate representation
+for task inter-dependencies. It outputs a hierarchical task
+description with precedence constraints. Finally, for the stage
+of “subtask sequences”, the prompt incorporates the subtask
+guide and the meta policy, generating the layered DAG for
+human verification and JSON for the module of subtask
+assignment. This multi-stage design of prompts enables
+progressive refinement of LLM reasoning through contex-
+tual grounding and policy-aware adaptation, for downstream
+execution. Some excerpts are shown in Fig. 3 and Fig. 4.
+D. Module of Subtask Assignment and Scheduling
+1) Multi-robot Subtask Assignment under Temporal Con-
+straints: Given the layered DAG including the ordered tasks
+and the associated strategy of subtasks, it remains to decide
+which robots in the fleet should perform which subtasks at
+what time, in order to minimize overall time to accomplish
+all tasks. In contrast to existing methods [3], this assign-
+ment and scheduling problem has two key characteristics:
+(I) the strategy of each task, namely the subtasks, should
+Instruction: ...
+Robots Team Description: ...
+Original Meta Policy: ...
+Context Analysis: Output of context analysis
+Tuned Meta Policy Example: If a fire is detected and water
+is available, then: Prioritize deploying drones and carts to
+refill water tanks first, then spray water on fire.
+Instruction: ...
+Robots Team Description: ...
+Context Analysis: Output of context analysis
+Tuning Meta Policy: Output of meta policy tuning
+Subtask Guide Example: Candidate Subtask Sequence
+1: Extinguish fire first with a water-filled drone, then
+coordinate rescue: an operating drone lifts the injured while
+a transport cart moves them to rescue station.
+Instruction: ...
+Robots Team Description: ...
+Tuning Meta Policy: Output of meta policy tuning
+Subtask Guide: Output of subtask guide
+Subtask Sequence Example: Candidate Subtask Sequence
+1: Sub-Task 2: robot type: fire extinguishing drone, action:
+spray water to flame, done by same robot as: Subtask 1,
+dependencies: [Subtask 1]
+Fig. 4: Outline of the prompts for subsequent stages.
+be determined along with the assignment; (II) both the
+tasks and subtasks have strict temporal constraints including
+precedence and exclusion or different priorities. Moreover,
+the mapping from subtasks to the required primitive skills is
+abstracted from the “Sequence of subtasks” contained in the
+output of the previous module. Lastly, the time duration of
+“navigation” is computed based on the explored map and the
+robot velocity, while the duration of the other skills should
+be specified in the robot description.
+2) Branch-and-bound Search with Integer Optimization:
+Due to the combinatorial complexity of the above assignment
+problem, a hybrid approach is proposed that combines the
+branch-and-bound (BnB) search with mixed integer opti-
+mization to determine the optimal assignment and schedule.
+Compared with the one-shot inference via LLMs, this ap-
+proach is verifiable, explainable and provides performance
+guarantee. More specifically, a search tree is constructed via
+iterative node selection and expansion. Each node is a partial
+assignment of system, i.e., ν “ pν1, ν2, ¨ ¨ ¨ , νNq, where νn
+is local plan of robot n as the sequence of grounded skills
+(including the starting time, ending time and location of each
+skill). The root node is an empty assignment. Selection: the
+node with the minimum makespan is selected within the
+set of existing nodes. Expansion: once a node is selected,
+it is expanded by selecting one strategy of any unassigned
+task and assigning the contained subtasks to the robots. To
+avoid producing infeasible assignments, the partial-ordering
+constraints in Pφ should be respected, i.e., a task can not be
+assigned before its preceding task in ĺφ. Once the strategy
+is selected, the set of subtasks to be assigned is determined
+along with their temporal-logic constraints.
+Then, to determine the optimal assignment and the sched-
+ule for this node, a mixed integer program is formulated as
+follows: (I) the variables include positive reals for the starting
+
+
+--- Page 5 ---
+Fig. 5: Multi-level online adaptation to 7 types of events, and the human-
+in-the-loop verification after each module.
+and ending time of each subtask, and integer variables to
+indicate the index of each subtask within the local plan of
+each robot; (II) the objective is to minimize the maximum
+ending time of all subtasks; and (III) the constraints include
+the capability constraint, the temporal-logic constraint among
+the subtasks (formulated via the big-M inequality), the
+environment constraint including navigation and subtask du-
+ration. Lastly, the integer problem is solved via off-the-shelf
+solvers, e.g., Gurobi [28], yielding the optimal makespan
+for this node, the subtask assignment and the associated
+schedule. This node is called feasible if integer problem
+is feasible with a finite makespan. Then, the procedure of
+selection and expansion is repeated, until the planning time
+elapsed or all combinations of possible strategies for the tasks
+are exhausted in the search tree. The lower bound on the
+makespan of each node is computed as the summation of
+the minimum duration of all remaining tasks, while the upper
+bound is given by a one-step greedy assignment algorithm.
+Algorithmic details are omitted here due to limited space.
+E. Module of Online Adaptation and Verification
+1) Multi-level Online Adaptation: The ability to adapt to
+different contingencies online is essential for the robotic fleet
+to operate in an open and unknown environment. Particularly,
+as shown in Fig. 5, consider the following events that
+might appear during the execution: (I) New instances of
+tasks detected. Whenever new instances of known tasks
+are detected (e.g., new victims detected), the module of
+subtask assignment is re-triggered to update the local plans
+of the robots. (II) New priority instances of tasks detected
+Whenever new priority instances of known tasks are detected
+(e.g., new serious victims detected), the module of mission
+comprehension is re-triggered to update the task DAG.
+Afterwards, new nodes in the layered DAG are created by
+replicating another node of the same type of task, then the
+module of subtask assignment is re-triggered to update the
+local plans. (III) New types of tasks detected. Whenever
+new types of tasks are specified in a new mission, the module
+of mission comprehension is re-triggered to update the task
+DAG, which is then fed to the following two modules to
+update the local plans eventually. (IV) New types of features
+detected. Whenever new types of features are detected (e.g.,
+water besides fire extinguish), it indicates that there are
+potentially new strategies to decompose the task utilizing the
+new feature. Thus, the module of subtask generation is re-
+triggered to update the layered DAG, which is then forwarded
+into the next module of subtask assignment to potentially
+update the local plans. (V) New instances of features
+Fig. 6: Simulated scenarios: (I) Emergency at chemical plants with fire
+suppression and casualty rescue; (II) Preservation of arctic region with
+ecological remediation and wildlife rescue.
+detected. Whenever new instances of known features are
+detected (e.g., new reservoir detected), it indicates that some
+subtasks might be accomplished earlier. Thus, the map is
+updated with these features, based on which the module
+of subtask assignment is re-triggered to update the local
+plans. (VI) Subtask execution status updated. Whenever
+the robots accomplish a subtask, this information is feedback
+to the module of subtask assignment to monitor the progress
+of plan execution. In case the execution of prolonged delay,
+the task assignment is re-triggered to update the local plans.
+(VII) Robot failures. Whenever a robot fails, it indicates
+that the current plan infeasible under the unchanged global
+information. Thus, the module of task assignment is re-
+triggered to find the feasible local plans of the robots.
+2) Human-in-the-loop Verification: To ensure correctness
+and improve transparency, online verification and confirma-
+tion by the human operator with the basic knowledge of
+the mission is enforced as follows: the task DAG from
+the module of task comprehension is verified regarding
+the partial ordering; the layered DAG from the module
+of task decomposition is checked regarding the strategies,
+where human feedback can be provided as necessary; the
+local plans from the module of subtask assignment can
+also be verified regarding consistency with the constraints;
+lastly, the execution status of the subtasks can be verified
+regarding the actual outcome. Theses measures have shown
+to be particularly effective in case of complex dependencies
+among the tasks and subtasks, where hallucination in LLMs
+can be apparent. Thus, the intermediate and final outputs
+are all logically sound and practically feasible, enhancing
+robustness against errors in task planning and execution.
+IV. NUMERICAL EXPERIMENTS
+To rigorously evaluate the proposed framework, numerical
+experiments are conducted across two large-scale scenarios.
+The implementation is built on ROS with Python3, where
+the LLM module employs DeepSeek-V3 for subtask gen-
+eration (alternative models are compared in the sequel). All
+tests run on a workstation with an Intel i9-13900KF 24-Core
+CPU @3.0GHZ with a RTX-4090 GPU. Simulation videos
+can be found in the supplementary material.
+A. System Description
+Two large-scale scenarios are considered: (I) Industrial
+emergency (40 m ˆ 60 m) contains dynamic hazards (ex-
+panding fires, immobile casualties) and mission-critical re-
+sources (water reservoirs, extinguisher depots), within which
+there are 2 manipulation UAVs, 2 fire-suppression UAVs,
+
+
+--- Page 6 ---
+Fig. 7: Snapshots of results under Scenario-I: new tasks are detected ((a)-(c)) new features are detected ((d)-(e)); new task DAG is added ((b)-(c)); new
+task strategy is added ((e)). Note that the task assignment is updated accordingly after each update.
+2 casualty-transport UGVs, and 2 multi-mode firefight-
+ing UGVs; (II) Arctic protection (45 m ˆ 45 m) con-
+tains biohazard zones and wildlife, maintained by 4 multi-
+functional UAVs, 2 ice-surface UGVs, and 2 heavy-payload
+UGVs. Each robot is equipped with SLAM-based mapping,
+collision-free navigation, and task-specific actuators. The
+proposed method is evaluated across tasks with diverse com-
+plexities: Mono-type (single-robot task), Dual-type (cross-
+robot collaboration), and Compound-type (3 robot coordi-
+nation), within each case from 2 to 8 concurrent tasks are
+dynamically generated online. Our framework is performed
+in a centralized manner, so that the global information is
+available to all robots. The ground truth (GT) strategy for
+each task is defined as the minimum sequences of subtasks
+based on expert knowledge. The system performance is
+quantified by deviations from the GT under spatio-temporal
+constraints.
+B. Results under Scenario-I
+The performance of the proposed framework is evaluated
+first in Secnario-I, for the case of compound tasks. As
+shown in Fig. 7, there are five key time instances that are
+worth pointing out. At t “ 12s in Fig. 7a, a new task
+of “suppression fire” is generated with the strategy “The
+firefighting UGVs first refill water (RW), then sprays water
+(SW) at the location”, and triggers the module of subtask
+assignment, which updates the local plans in 1.0s. The
+detection of mild-injury victims at t “ 25s in Fig. 7b invokes
+the full pipeline: mission comprehension in 0.4s, subtask
+generation in 60.1s, and schedule optimization in 1.2s,
+where the new subtasks of “coordinating parallel operations
+between the casualty-transport UGVs (SU) and manipulation
+UAVs (LA) for victim access, followed by drone-assisted
+victim transfer (LD) to the vehicle and subsequent transport
+to the rescue station (MT)”, are assigned to idle robots. Then,
+at t “ 40s in Fig. 7c, a severe-injury victim is detected
+and the task DAG is reconstructed in 0.5s with priority
+constraints, by leveraging existing strategy of rescue tasks.
+The revised local plans show that this high-priority task is
+executed first by Cart4 and Drone6, while the other subtasks
+are re-assigned. Moreover, a new rescue station is detected
+at t “ 50s in Fig. 7d which only triggers the module of
+subtask assignment in 3s. It results in a 13.5% reduction
+in task completion time, as the victims are transferred to
+the nearest rescue station. Lastly, novel resources like sand
+heaps are detected at t “ 60s in Fig. 7e, when the module of
+subtask generation triggers the LLM-based reasoning and the
+strategy for “suppression fire” is updated to “The firefighting
+UGVs first refill heap (RS), then sprays heap (SS) at the
+location”. A total of 30 compound tasks and 82 subtasks are
+completed, fully satisfying all temporal-logical constraints.
+The average adaptation time across all events is 66.21 s,
+with the task DAG updated 4 times and the layered DAG
+updated 5 times on average.
+C. Comparisons
+To further validate the effectiveness of the proposed
+method, comparative experiments are conducted against five
+state-of-the-art approaches: (I) LiP-LLM [24] augmented
+with our module of mission comprehension for multi-
+robot allocation through linear programming and depen-
+dency graph integration; (ii) COHERENT [6] modified to
+employ its Proposal-Execution-Feedback-Adjustment loop
+exclusively for LLM-based task assignment while retaining
+other core components; (iii) SMART-LLM [5] enhanced
+with our mission comprehension framework for hierarchi-
+cal planning through LLM-guided coalition formation; (iv)
+CMRS [21] implemented as an end-to-end baseline generat-
+ing per-robot action plans; and (v) RoCo [7] maintained in
+original configuration using multi-agent dialogues for coordi-
+nation and LLM-informed motion planning. Five quantitative
+metrics are compared: Success Rate (SR) as the percentage
+of trials producing valid, executable plans as verified by
+human experts, Plan Time (PT) as computation time from
+environmental updates to plan generation, Planning Length
+as the average number of discrete actions in generated plans,
+Tasks Completed as the cumulative count of completed
+tasks, and SPL computing step efficiency by comparing
+generated plan length to the ground truth [24].
+The proposed method is evaluated in two scenarios,
+each comprising three trials with approximately 200 tasks
+and 600 subtasks within 10000s, of which the results are
+summarized in Table I. Our approach demonstrates con-
+sistently superior planning efficiency and task completion
+
+
+--- Page 7 ---
+Methods
+Scenario-I
+Scenario-II
+SRÒ
+SPLÒ
+Time Ó
+LengthÓ
+TasksÒ
+SRÒ
+SPLÒ
+Time Ó
+LengthÓ
+TasksÒ
+Mono
+CMRS
+1.00
+0.16
+22.01
+12.33
+30.27
+1.00
+0.22
+24.78
+9.33
+38.74
+SMART-LLM
+1.00
+0.20
+44.71
+10.33
+33.00
+1.00
+0.25
+64.42
+8.67
+35.58
+ROCO
+1.00
+0.17
+40.23
+12.00
+29.39
+1.00
+0.17
+48.98
+13.33
+26.16
+COHERENT
+1.00
+0.32
+37.07
+6.33
+72.96
+1.00
+0.44
+40.00
+4.67
+86.96
+LiP-LLM
+1.00
+0.65
+102.37
+3.50
+62.55
+1.00
+0.44
+89.13
+4.67
+60.93
+Ours
+1.00
+0.63
+61.98
+3.67
+166.60
+1.00
+0.40
+78.53
+5.50
+114.49
+Dual
+CMRS
+0.76
+0.44
+18.06
+9.33
+39.78
+1.00
+0.39
+23.24
+10.67
+34.49
+SMART-LLM
+0.78
+0.15
+41.25
+8.00
+41.45
+0.33
+0.17
+45.69
+8.33
+39.37
+ROCO
+0.67
+0.22
+45.93
+11.67
+29.62
+0.33
+0.11
+57.00
+11.33
+29.38
+COHERENT
+0.67
+0.33
+67.92
+8.00
+51.84
+1.00
+0.56
+87.64
+7.33
+49.35
+LiP-LLM
+1.00
+0.50
+64.17
+8.00
+52.86
+0.33
+0.17
+54.95
+6.00
+66.69
+Ours
+1.00
+1.00
+70.45
+4.00
+153.68
+1.00
+0.56
+75.31
+7.33
+87.65
+Compound
+CMRS
+0.43
+0.30
+20.04
+10.83
+35.03
+1.00
+0.30
+24.01
+10.00
+36.62
+SMART-LLM
+0.50
+0.10
+42.98
+9.17
+37.22
+0.67
+0.21
+55.05
+8.50
+37.47
+ROCO
+0.83
+0.19
+43.08
+11.83
+29.51
+0.67
+0.14
+52.99
+12.33
+27.77
+COHERENT
+0.83
+0.33
+52.49
+7.17
+62.40
+1.00
+0.50
+63.82
+6.00
+68.15
+LiP-LLM
+1.00
+0.57
+83.27
+5.75
+57.71
+0.67
+0.31
+72.04
+5.33
+63.81
+Ours
+1.00
+0.82
+66.21
+3.83
+160.14
+1.00
+0.48
+76.92
+6.42
+101.07
+TABLE I: Quantitative comparison of different methods under varying tasks across two scenarios. Notes: SR (success rate (%)), Time [s], Length: plan
+length, Tasks: number of completed tasks, SPL: step efficiency (generated vs. ground truth plan length). Best Result. (↑: higher better, ↓: lower better).
+performance compared to baselines. Notably achieving 100%
+success rates across all configurations, our method completes
+significantly more tasks within identical time constraints
+((166.60, 153.68, 160.14) vs. (114.49, 87.65, 101.07)). This
+is the most apparent in the case of compound task configura-
+tions where all baselines fall short in both metrics of SR and
+SPL. While baseline methods attain comparable SR in the
+mono-type tasks at 100%, our framework shows exceptional
+robustness in handling complex scenarios. For the case of
+compound tasks, the highest SPL scores are achieved by
+the proposed (0.82 vs. 0.30 vs. 0.10 vs. 0.19 vs. 0.33
+vs. 0.57), validating the effectiveness of the multi-stage
+subtask generation via LLMs. Although longer computation
+time is required than CMRS ((61.98s, 70.45s, 66.21s) vs.
+(22.01s, 18.06s, 20.04s)), our method maintains the highest
+task efficiency, owing to the model-based module of sub-
+task assignment. Despite of the performance degradation in
+Scenario-II compared to Scenario-I ((114.49, 87.65, 101.07)
+vs. (166.60, 153.68, 160.14)), our method retains the best
+performance in all metrics.
+D. Ablation Study
+To better understand the contribution of different design
+choices in our framework, ablation studies are conducted
+by analyzing the impact of removing different stages in the
+module of subtask generation.
+1) Different LLMs: Besides DeepSeek-V3, other known
+LLMs are tested, such as GPT-4o, qwen-2.5-max, Grok-3.
+As shown in Table II, GPT-4o and Qwen-2.5-max achieve
+superior performance across both scenarios in terms of SPL,
+the quality of local plans, and number of completed tasks.
+Notably, our framework maintains high efficiency even for
+models like Grok-3, with 100% success rate and slightly
+degraded performance in SPL and completed tasks. More-
+over, it is worth noting that the task efficiency exhibits
+LLM
+Scenario-I
+Scenario-II
+/Stages
+SR↑SPL↑Length↓Tasks↑
+SR↑SPL↑Length↓Tasks↑
+DeepSeek-V3
+1.00
+0.82
+3.83
+160.14
+1.00
+0.48
+6.39
+101.18
+GPT-4o
+1.00
+0.79
+4.25
+170.81
+1.00
+0.91
+3.50
+206.35
+qwen-2.5-max 1.00
+0.85
+3.58
+179.86
+1.00
+0.79
+3.97
+172.26
+Grok-3
+1.00
+0.61
+5.08
+128.23
+1.00
+0.50
+6.00
+106.89
+Ours w/o S.A
+1.00
+0.61
+5.33
+110.44
+1.00
+0.46
+6.33
+98.76
+Ours w/o M.P 1.00
+0.47
+6.33
+103.86
+1.00
+0.40
+7.42
+87.60
+Ours w/o S.G
+1.00
+0.72
+4.33
+124.43
+1.00
+0.47
+6.50
+101.18
+Ours (full)
+1.00 0.82
+3.83
+160.14 1.00 0.48
+6.39
+106.29
+TABLE II: Ablation studies in both scenarios: different LLMs (upper) and
+without certain stages in the module of task decomposition (bottom).
+variances across different LLMs. In Scenario-I, Qwen-2.5-
+max achieves the peak SPL of 0.85 with the minimal plan
+length of 3.58, whereas GPT-4o has the highest number of
+completed tasks at 206.35. This observation suggests that the
+performances of different LLMs are scenario-dependent.
+2) Different Stages within Module of Task Decomposition:
+To validate the importance of different stages within the mod-
+ule of task decomposition, ablation studies by sequentially
+removing Situation Analysis (S.A.), Meta Policy (M.P.), and
+Subtask Generation Guide (S.G.). As shown in Table II,
+while all variants maintain perfect success rates (SR = 1.00),
+their removal distinctly impacts the performance metrics. The
+M.P. emerges as the most critical component, exhibiting the
+severest performance degradation: 42.7% lower SPL (0.47
+vs. 0.82), 65.3% longer average path length (6.33 vs. 3.83),
+and 35.2% fewer completed tasks (103.86 vs. 160.14) com-
+pared to the full implementation. S.A. demonstrates the
+secondary importance, while S.G. shows the least impact.
+This hierarchy aligns with our architectural priorities: The
+M.P. drives the core planning throughout execution, while
+S.A. ensures accurate scene interpretation, and S.G. primar-
+ily optimizes LLM outputs. These results confirm that the
+multi-stage reasoning capability (enabled by M.P.) and the
+
+
+--- Page 8 ---
+Scenario
+Ours
+Others
+w/
+w/o
+MisComp
+SubGen
+SubAll
+I
+19%
+29%
+100%
+100%
+SR
+100%
+65%
+Ct.
+3/11
+—
+II
+38%
+53%
+100%
+100%
+SR
+100%
+71%
+Ct.
+2/7
+—
+TABLE III: Left: comparison of counts for different modules being triggered
+between ours with other baselines during the online adaptation of 40
+events in Scenario-I and 28 events in Scenario-II; Right: success rate with
+and without the proposed human-in-the-loop verification, and the average
+number of feedback required.
+precise situation understanding (provided by S.A.) constitute
+essential requirements for complex task decomposition.
+3) Triggering of Different Modules during Online Adap-
+tation: As an important feature of the proposed module of
+online adaptation, the modules of mission comprehension
+(MisComp), subtask generation (SubGen), and scheduling
+(SubAll) are triggered at different events. As shown in
+Table. III, 30 tasks and 10 features are detected online
+for Scenario-I, for which 19% triggers MisComp, 29% for
+SubGen, and 100% for SubAll; 20 tasks and 8 features are
+detected online for Scenario-II, for which 38%, 53%, and
+100% triggers MisComp, SubGen and SubAll, respectively.
+This reduces the LLM usage by 81% in Scenario-I and
+62% in Scenario-II, compared to the baseline methods that
+query LLMs at each event. Minimizing dependence on LLMs
+enhances cost-efficiency and ensures reliability, for time-
+sensitive robotics applications in constrained environments.
+4) Importance of Human Verification: Furthermore, the
+importance of online human-in-the-loop verification is veri-
+fied by removing verification after each module. As shown
+in Table. III, in Scenario-I, the SR reaches 100% with
+verification, compared to only 65% without. Similarly in
+Scenario-II, the SR achieves 100% with verification, while
+it drops to 71% without. On average, only 3 interventions
+are required during 11 tests for Scenario-I, and 2 of 7 tests
+for Scenario-II, to achieve 100% success rate. Thus, these
+findings validate the importance of online human verification
+and the seldom interventions actually required.
+V. CONCLUSION AND FUTURE WORK
+This work introduces DEXTER-LLM, a novel framework
+enabling dynamic coordination of heterogeneous multi-robot
+systems in unknown environments. Via combining LLM-
+based hierarchical reasoning with model-based optimiza-
+tion, the framework achieves automated task decomposition,
+constraint-aware scheduling, and online adaptation to emer-
+gent features, while ensuring optimality and explainability.
+Future work include the consideration of inter-robot commu-
+nication constraints, and hardware experiments.
+REFERENCES
+[1] A. Khamis et al., “Multi-robot task allocation: A review of the state-
+of-the-art,” Cooperative robots and sensor networks, pp. 31–51, 2015.
+[2] A. Messing et al., “Grstaps: Graphically recursive simultaneous task
+allocation, planning, and scheduling,” The International Journal of
+Robotics Research, vol. 41, no. 2, pp. 232–256, 2022.
+[3] Z. Liu et al., “Time minimization and online synchronization for multi-
+agent systems under collaborative temporal logic tasks,” Automatica,
+vol. 159, p. 111377, 2024.
+[4] J. Chen, Z. Tang, and M. Guo, “Accelerated k-serial stable coalition
+for dynamic capture and resource defense,” IEEE Robotics and Au-
+tomation Letters, vol. 9, no. 1, pp. 443–450, 2024.
+[5] S. S. Kannan et al., “Smart-llm: Smart multi-agent robot task planning
+using large language models,” in IEEE International Conference on
+Intelligent Robots and Systems (IROS), 2024, pp. 12 140–12 147.
+[6] K. Liu et al., “Coherent: Collaboration of heterogeneous multi-robot
+system with large language models,” arXiv preprint arXiv:2409.15146,
+2024.
+[7] Z. Mandi et al., “Roco: Dialectic multi-robot collaboration with large
+language models,” in IEEE International Conference on Robotics and
+Automation (ICRA), 2024, pp. 286–299.
+[8] C. Aeronautiques et al., “Pddl— the planning domain definition
+language,” Technical Report, Tech. Rep., 1998.
+[9] M. Guo and D. V. Dimarogonas, “Multi-agent plan reconfiguration
+under local ltl specifications,” The International Journal of Robotics
+Research, vol. 34, no. 2, pp. 218–235, 2015.
+[10] M. Kloetzer and C. Mahulea, “Ltl planning in dynamic environments,”
+IFAC Proceedings Volumes, vol. 45, no. 29, pp. 294–300, 2012.
+[11] M. Guo and D. V. Dimarogonas, “Task and motion coordination for
+heterogeneous multiagent systems with loosely coupled local tasks,”
+IEEE Transactions on Automation Science and Engineering, vol. 14,
+no. 2, pp. 797–808, 2016.
+[12] M. Ahn et al., “Do as i can, not as i say: Grounding language in robotic
+affordances,” in Proceedings of The Conference on Robot Learning,
+2023, pp. 287–381.
+[13] Z. Zhou et al., “Iterative selfrefined large language model for long-
+horizon sequential task planning,” in IEEE International conference
+on robotics and automation (ICRA), 2024, pp. 2–10.
+[14] A. Capitanelli and F. Mastrogiovanni, “A framework for neurosym-
+bolic robot action planning using large language models,” Frontiers in
+Neurorobotics, vol. 18, p. 1342786, 2024.
+[15] Z. Zhou, J. Song, K. Yao, Z. Shu, and L. Ma, “Isr-llm: Iterative self-
+refined large language model for long-horizon sequential task plan-
+ning,” in IEEE International Conference on Robotics and Automation
+(ICRA), 2024, pp. 2081–2088.
+[16] Y. Cai et al., “Mrbtp: Efficient multi-robot behavior tree planning and
+collaboration,” in Proceedings of the AAAI Conference on Artificial
+Intelligence, vol. 39, no. 14, 2025, pp. 14 548–14 557.
+[17] X. Luo and M. M. Zavlanos, “Temporal logic task allocation in
+heterogeneous multirobot systems,” IEEE Transactions on Robotics,
+vol. 38, no. 6, pp. 3602–3621, 2022.
+[18] K. Kawaharazuka et al., “Real-world robot applications of foundation
+models: A review,” Advanced Robotics, vol. 38, no. 18, pp. 1232–1254,
+2024.
+[19] Y. Chen et al., “Autotamp: Autoregressive task and motion planning
+with llms as translators and checkers,” in IEEE International confer-
+ence on robotics and automation (ICRA), 2024, pp. 6695–6702.
+[20] P. Gupta et al., “Generalized mission planning for heterogeneous
+multi-robot teams via llm-constructed hierarchical trees,” arXiv
+preprint arXiv:2501.16539, 2025.
+[21] W. Huang et al., “Language models as zero-shot planners: Extracting
+actionable knowledge for embodied agents,” in International confer-
+ence on machine learning.
+PMLR, 2022, pp. 9118–9147.
+[22] K. Valmeekam et al., “Large language models still can’t plan (a
+benchmark for llms on planning and reasoning about change),” in
+NeurIPS Foundation Models for Decision Making Workshop, 2022.
+[23] T. Silver et al., “Generalized planning in pddl domains with pretrained
+large language models,” in Proceedings of the AAAI Conference on
+Artificial Intelligence, 2024, pp. 20 256–20 264.
+[24] K. Obata et al., “Lip-llm: Integrating linear programming and de-
+pendency graph with large language models for multi-robot task
+planning,” IEEE Robotics and Automation Letters, vol. 10, no. 2, pp.
+1122–1129, 2024.
+[25] S. S. OV et al., “Impact of heterogeneity in multi-robot systems
+on collective behaviors studied using a search and rescue problem,”
+in IEEE International Symposium on Safety, Security, and Rescue
+Robotics (SSRR), 2020, pp. 290–297.
+[26] Y. Chen et al., “Nl2tl: Transforming natural languages to temporal
+logics using large language models,” in Conference on Empirical
+Methods in Natural Language Processing, 2023, pp. 15 880–15 903.
+[27] C. Baier and J.-P. Katoen, Principles of model checking.
+MIT press,
+2008.
+[28] Gurobi Optimization, LLC, Gurobi Optimizer Reference Manual,
+2023. [Online]. Available: https://www.gurobi.com

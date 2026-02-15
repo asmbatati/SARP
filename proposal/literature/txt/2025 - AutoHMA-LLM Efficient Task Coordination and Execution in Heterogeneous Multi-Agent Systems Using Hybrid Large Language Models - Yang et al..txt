@@ -1,0 +1,1275 @@
+--- Page 1 ---
+IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. 11, NO. 2, APRIL 2025
+987
+AutoHMA-LLM: Efﬁcient Task Coordination and
+Execution in Heterogeneous Multi-Agent Systems
+Using Hybrid Large Language Models
+Tingting Yang
+, Senior Member, IEEE, Ping Feng
+, Qixin Guo, Jindi Zhang, Xiufeng Zhang,
+Jiahong Ning, Student Member, IEEE, Xinghan Wang
+, and Zhongyang Mao
+Abstract—Heterogeneous multi-agent systems (HMAS) com-
+prise various intelligent agents with specialized functions, such
+as drones, ground robots, and automated devices, working
+in coordinated settings. This paper presents AutoHMA-LLM,
+a novel framework that combines Large Language Models
+(LLMs) with classical control algorithms to address the chal-
+lenges of task coordination and scheduling in complex, dynamic
+environments. The framework is designed with a multi-tier
+architecture, utilizing a cloud-based LLM as the central planner
+alongside device-speciﬁc LLMs and Generative Agents to improve
+task execution efﬁciency and accuracy. Speciﬁcally targeting
+dynamic scenarios, the system enhances resource utilization and
+stabilizes task execution through reﬁned task scheduling and
+real-time feedback mechanisms. In experiments conducted across
+logistics, inspection, and search & rescue scenarios, AutoHMA-
+LLM demonstrated a 5.7% improvement in task completion
+accuracy, a 46% reduction in communication steps, and a 31%
+decrease in token usage and API calls compared to baseline
+methods. These results highlight our framework’s scalability and
+efﬁciency, offering substantial support for effective multi-agent
+collaboration in complex, resource-constrained environments.
+Index Terms—Generative AI, large language model (LLM),
+heterogeneous multi-agent system (HMAS), communication coor-
+dination, dynamic task allocation, cloud computing.
+I. INTRODUCTION
+I
+N CONTEMPORARY industries and emergency man-
+agement, Heterogeneous multi-agent systems integrating
+drones, ground robots, and automated devices are widely
+used in logistics, infrastructure inspection, and emergency
+response [1], [2], [3]. These systems enhance task efﬁciency,
+scalability, and adaptability by combining diverse autonomous
+Received 1 July 2024; revised 20 November 2024 and 18 December 2024;
+accepted 1 January 2025. Date of publication 13 January 2025; date of current
+version 9 April 2025. The associate editor coordinating the review of this
+article and approving it for publication was X. Wang. (Corresponding authors:
+Ping Feng; Qixin Guo.)
+Tingting Yang is with the Schol of Navigation, Dalian Maritime University,
+Dalian 116026, China, and also with the Department of Personnel and
+Education, Peng Cheng Laboratory, Shenzhen 518066, China.
+Ping Feng, Xiufeng Zhang, and Jiahong Ning are with the Schol of
+Navigation, Dalian Maritime University, Dalian 116026, China (e-mail: feng-
+ping33@hotmail.com).
+Qixin Guo is with Tencent, Shenzhen and Nanjing University, Nanjing
+210093, China (e-mail: qixiguo@tencent.com).
+Jindi Zhang is with the School of Science and Engineering, The Chinese
+University of Hong Kong, Shenzhen 518172, China.
+Xinghan Wang is with the School of Cyber Science and Engineering,
+Southeast University, Nanjing 210096, China.
+Zhongyang Mao is with the Aviation Communications Teaching and
+Research Ofﬁce, Naval Aviation University, Yantai 265401, China.
+Digital Object Identiﬁer 10.1109/TCCN.2025.3528892
+agents with different capabilities. However, coordinating
+communication and scheduling tasks presents signiﬁcant
+challenges, with consistency in temporal protocols among
+agents leading to inefﬁciencies and potential conﬂicts [4], [5].
+Traditional task planning methods are poor in scalability
+because of its static design, which require onerous code mod-
+iﬁcation specially in complex environments. This underscores
+the need for efﬁcient, intelligent, autonomous task scheduling
+and communication coordination in these systems.
+LLMs like GPT-4 [6], GPT-3.5 [7], and LLAMA2 [8]
+excel in natural language understanding, logical reasoning, and
+generalization. Capable of processing diverse data, generating
+coherent responses, and adapting to various tasks, LLMs offer
+innovative solutions to the challenges of communication coor-
+dination and task scheduling in heterogeneous systems. LLMs
+effectively address the complexities of dynamic environments
+by enhancing understanding and planning capabilities and
+optimizing resource utilization through intelligent task decom-
+position and dynamic scheduling.
+This paper introduces a novel framework utilizing a hybrid
+of large and small models to address communication coor-
+dination, dynamic task decomposition, and scheduling issues
+in heterogeneous multi-agent systems. Combining the under-
+standing capabilities of large models with the computational
+efﬁciency of small models, this approach coordinates tem-
+poral protocols among agents, reduces inconsistencies, and
+optimizes computational resource utilization. The framework
+is advantageous for implementing autonomous multi-agent
+networks wirelessly, maintaining high efﬁciency in various
+environments, thus enhancing task reliability and performance.
+The architecture achieves effective communication coordi-
+nation and task scheduling by integrating LLMs’ powerful
+reasoning capabilities with smaller models’ efﬁciency. This
+includes a control layer, Cloud LLM, Device LLM, and
+Generative Agents collaborating to optimize task allocation
+and resource utilization. Our contributions include:
+• A hybrid LLM architecture that coordinates scheduling
+using large and small models addresses coordination and
+scheduling inefﬁciencies and enhances task execution
+efﬁciency.
+• Discussion of six communication methods, including
+decentralized and centralized coordination strategies,
+which comprehensively veriﬁed the characteristics of
+different architectures and model combinations.
+• Construction of a wireless multi-agent generative AI
+autonomous network capable of perceiving environmental
+2332-7731 c⃝2025 IEEE. All rights reserved, including rights for text and data mining, and training of artiﬁcial intelligence
+and similar technologies. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 
+
+
+--- Page 2 ---
+988
+IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. 11, NO. 2, APRIL 2025
+changes, reasoning about task states, and achieving goals
+through efﬁcient communication and task allocation.
+In Section I, the paper introduces the background of
+heterogeneous multi-agent systems and brieﬂy shows the
+advantages of the architecture we proposed for solving related
+issues. Section II explores the relevant work of Reinforcement
+Learning, LLM Agent, and Multi-agent Control Technology
+used in this paper. Section III details the system, and derives
+the abstractly problem that we solved in mathematical lan-
+guage. In Section IV, we introduced the proposed architecture
+with communication mechanisms and then explained how they
+work in real-world scenarios. Section V is the experimental
+part, which ﬁrst introduces how the simulation environment
+was built and the deﬁnition of test indicators. The speciﬁc
+results of accuracy, efﬁciency, and cost of our proposed
+architecture and ﬁve control groups are shown right after. The
+simulation results of task planning and collision prevention
+are also shown at the end. Section VI is the conclusive part,
+we concisely summarize this paper’s technological innovation
+and practical value.
+II. RELATED WORKS
+A. Multiagent Deep Reinforcement Learning Algorithms
+Multiagent Deep Reinforcement Learning (MARL) [9]
+has enhanced agent capabilities in various jobs, such as
+path planning, obstacle avoidance and agent control. This
+makes it possible to build complex multi-agent systems.
+Q-learning [10] operates on the principle of maximizing the
+expected sum of rewards across all consecutive steps. This
+algorithm enables agents to make decisions based on strategies
+that yield the highest returns over the long term, which is
+crucial in dynamic and complex environments. Integrating
+Q-learning into MARL frameworks such as MA-PPO [11],
+QMIX [12], and QPLEX [13] has enhanced their effectiveness,
+providing a robust mechanism for agents to assess and adjust
+their strategies in real time. MA-POCA [14] utilizing these
+principles combined with counterfactual reasoning from the
+COMA [15], further optimizes reward distribution among
+agents, signiﬁcantly enhancing cooperation and collective
+decision-making within agent groups. This paper also utilizes
+Q-learning within Generative Agents, achieving notable results
+across various scenarios.
+B. LLMs for Multi-Agent
+LLMs have emerged as powerful tools for enhancing multi-
+agent systems in planning, coordination, and task reasoning.
+Early works like SayCan [16] and Inner Monologue [17]
+focused on single-agent scenarios, using environmental feed-
+back to improve planning and scheduling. Studies such as
+CaP [18], ProgGPT [19], and Demo2Code [20] demonstrated
+LLMs’ capability in generating adaptable policies, broadening
+their applications to diverse tasks and agent behaviors. In
+motion planning, frameworks like AutoTAMP [21] and LLM-
+GROP [22] integrated LLMs with traditional Task and Motion
+Planning (TAMP), enabling more dynamic task execution in
+complex environments. However, these efforts were largely
+limited to single-agent or centralized planning [23].
+Recent research has shifted towards multi-agent systems,
+addressing
+challenges
+in
+collaboration
+and
+scalability.
+RoCo [24] introduced a dialectic framework for LLM-driven
+multi-robot collaboration, facilitating interaction and coordi-
+nation among agents. Another study [25] examined centralized
+and decentralized multi-robot frameworks, utilizing LLMs
+to enhance task distribution and communication. Building
+on these advancements, our approach introduces a novel
+multi-agent framework that employs LLMs for real-time task
+reasoning and strategy adjustment. Unlike previous works
+relying on static policies or single-threaded planning, our
+framework dynamically adapts to complex, interdependent
+tasks, improving both scalability and performance in multi-
+agent environments.
+C. Multi-Agents Collaboration and Planning
+Research in multi-agent manipulation has a long-standing
+history. The ﬁrst cluster of studies focuses on low-level
+problems such as ﬁnding collision-free motion trajectories,
+where sampling methods are commonly employed, and var-
+ious algorithmic improvements have been proposed. Recent
+efforts have also explored learning-based methods. Some work
+focused on addressing more challenging scenarios requiring
+sophisticated low-level controls, such as involving dynamic
+objects or closed-chain kinematics [24]. The second cluster of
+work concentrates more on high-level planning to allocate and
+coordinate sub-tasks, which is more relevant to our work [25].
+Although most prior work customized their systems for limited
+tasks like furniture assembly [26], our work emphasizes the
+ﬂexibility and scalability to accomplish a wide range of tasks
+in real-world scenarios.
+III. SYSTEM DEFINITION
+Tasks involving collaborative efforts from heterogeneous
+multi-agent systems [27] in diverse operational scenarios
+usually encompass different entities, which we denote as
+˜H = { ˜U , ˜V , ˜R}, namely UAVs (unmanned aerial vehicles),
+vehicles (cars or ships), and robots (warehouse robots or
+inspection robots). These agents are organized as,
+⎧
+⎪
+⎪
+⎨
+⎪
+⎪
+⎩
+U ≡
+
+U1, . . . , Unt , . . . , UNU
+
+˜V ≡
+
+V1, . . . , Vnq , . . . , VNV
+
+˜R ≡
+
+R1, . . . , Rnww , . . . , RNR
+
+,
+(1)
+where NU , NV , NR represent the total number of agents in
+each group. For each team in ˜H , an extended Markov Decision
+Process (MDP) is deﬁned, named M ˜U , M ˜V , and M˜R, where
+the state of each agent at time t is speciﬁed as U tnt , V tnq , and
+Rtnw , respectively. The set containing the state of each agent
+at any given time is denoted as,
+S =
+	
+˜U t, ˜V t, ˜Rt
+.
+(2)
+The algorithm applied to each team ensures convergence
+to a cooperative strategy under a speciﬁed reward function.
+To stimulate the intelligence of heterogeneous agents, we
+formulate an optimization problem,
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 
+
+
+--- Page 3 ---
+YANG et al.: AutoHMA-LLM: EFFICIENT TASK COORDINATION AND EXECUTION IN HMAS USING HYBRID LLMs
+989
+Fig. 1.
+Overall framework of AutoHMA-LLM, illustrating the integration of Cloud LLM as the central planner, Device LLMs as dispatchers, and Generative
+Agents as executors. The framework emphasizes real-time feedback, dynamic task allocation, and adaptive execution, enabling efﬁcient collaboration across
+diverse agents and environments.
+arg min
+θ
+fπθ
+
+˜U, ˜V, R
+
+s. t. gπθ
+
+˜U , D, ˜R
+
+≤C1
+g∗
+πθ
+
+Pnp, ˜R
+
+≤C2∀Pnp, Rnp ∈
+
+˜U ∪˜V
+
+kπθ
+
+D, ˜U
+
+≤
+C3
+cπθ
+
+˜U, ˜V, R
+
+= 0,
+(3)
+where fπθ(·) is deﬁned as,
+fπθ
+
+˜U, ˜V, ˜R
+
+=
+
+ˆfπθ
+
+˜Ut, ˜Vt, ˜Rt
+dt
+=
+
+
+Ptnt ∈Ut
+min
+
+dist(Pt
+nt , Ut
+nt )
+
+dt.
+(4)
+The objective is to minimize the distance between agents
+and target points. The function dist(·, ·) calculates the
+Euclidean distance between UAVs and the planned path at
+time t. This function can be discretized as,
+T
+
+t=0
+dist
+
+Pt
+np, U t
+nt
+
+,
+(5)
+similarly, the function gπθ(·) is deﬁned as,
+gπθ
+
+˜U, ˜V, ˜R
+
+=
+
+min
+
+dist(Pt
+nt , ˜vt
+nq )
++dist(Pt
+nt , ˜Rt
+nw )
+
+dt.
+(6)
+The distance between agents should be kept within a threshold
+C1 to ensure effective communication. The range of com-
+municative agents within g∗πθ(Pnp, ˜R) should not exceed the
+threshold C2. The function kπθ(·) is deﬁned as,
+kπθ
+
+˜V , ˜U
+
+=
+ 
+min
+
+dist( ˜V t
+nq , ˜U t
+nt )
+
+dt.
+(7)
+IV. METHOD
+A. Multi-Agent System Architecture
+This section elaborates on the overall framework and
+deployment architecture of the heterogeneous multi-agent
+system proposed. As depicted in Figures 1, it integrates Cloud
+LLM, Device LLMs and Generative Agents. The primary goal
+of this system is to achieve intelligent scheduling and coor-
+dinated work through efﬁcient task decomposition, allocation,
+coordination, and feedback mechanisms.
+1) Overall Framework: Within this architecture, the cloud
+LLM is a central planner responsible for receiving and
+reﬁning task directives from the control layer into actionable
+instructions for speciﬁc agents. It continuously optimizes
+task allocation and execution by leveraging real-time node
+self-correction feedback and environmental feedback. These
+reﬁned task directives will be disseminated to Device LLMs,
+ensuring an effective distribution and execution of tasks across
+various devices. As the planner, the Cloud LLM coordinates
+task allocation in global, while fostering collaboration among
+agents through real-time feedback mechanisms, ultimately
+enhancing the system’s efﬁciency.
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 
+
+
+--- Page 4 ---
+990
+IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. 11, NO. 2, APRIL 2025
+Fig. 2.
+Deployment structure of the AutoHMA-LLM system, highlighting
+the hierarchical coordination among the Cloud LLM, Device LLMs, and
+Generative Agents, enabling real-time task execution and feedback in a
+wireless network environment.
+Device LLMs, serving as dispatchers, are embedded in vari-
+ous devices like tablets, laptops, and unmanned vehicles. They
+receive task directives from the Cloud LLM and relay detailed
+subtask plans to Generative Agents. Depending on the agents’
+attributes and the task requirements, Device LLMs dynam-
+ically adjust execution plans and guide Generative Agents
+to perform speciﬁc operations. Through a real-time feed-
+back loop, Device LLMs monitor and revise task execution
+progress, guaranteeing efﬁcient task delivery and execution
+among Generative Agents.
+Generative Agents, as executors, receive subtask directives
+from Device LLMs and perform tasks ranging from logistics
+transportation to equipment inspection or search & rescue mis-
+sions. As they execute, they generate updated state information
+and provide feedback to both device-level and Cloud LLMs
+for real-time adjustments and optimizations. In addition to
+leveraging the strengths of LLMs in task planning and schedul-
+ing, Generative Agents also utilize smaller models to execute
+speciﬁc tasks based on subtask action directives, exhibiting
+high execution efﬁciency and system-wide coordination. For
+instance, the employment of Q-Learning model for global path
+planning enables agents to navigate more efﬁcient and adaptive
+in complex environments.
+2) Deployment
+Architecture: The
+wireless
+Generative
+Agent network deployment scheme proposed, as illustrated
+in
+Figure 2,
+demonstrates
+the
+feasibility
+of
+integrating
+various components to function collaboratively in a practical
+environment. As the core of the system, the Cloud LLM
+oversees
+the
+overall
+task
+planning
+and
+distribution.
+It
+communicates
+with
+Device
+LLMs,
+disseminating
+task
+directives and collecting feedback information. The Cloud
+LLM performs global task optimization and reﬁnement by
+consolidating feedback from various devices.
+On various devices, Device LLMs receive task directives
+from the Cloud LLM and convey detailed action parameters to
+the Generative Agents. Based on the agents’ feedback, Device
+LLMs dynamically adjust task execution plans, ensuring efﬁ-
+cient task execution by the agents.
+As the actual executors, Generative Agents perform speciﬁc
+actions based on the instructions from the Device LLMs.
+These agents, including drones, ground transportation and
+Fig. 3.
+Six communication mechanisms: Decentralized Small Model,
+Decentralized
+LLM,
+Decentralized
+Hybrid
+Model,
+Centralized
+LLM,
+Centralized Small Model, and Centralized Hybrid Model. AutoHMA-LLM
+adopts the Centralized Hybrid approach, optimizing task coordination and
+resource utilization with a balance of large and small models.
+inspection robots, can operate efﬁciently in diverse task scenar-
+ios. Through a real-time feedback mechanism, the Generative
+Agents transmit task execution status information back to the
+device level and Cloud LLMs, enabling timely task adjust-
+ments and optimizations. By executing tasks efﬁciently and
+providing real-time feedback, the Generative Agents enhance
+the system’s execution efﬁciency and safety, ensuring the
+successful completion of tasks in complex environments.
+B. Communication Mechanisms
+As illustrated in Figure 3, we discuss six communication
+modes: the Decentralized Small Model, the Decentralized
+LLM, the Decentralized Hybrid Model, the Centralized LLM,
+the Centralized Small Model, and the Centralized Hybrid
+Model.
+The Decentralized Small Model (Fig. 3(a)) enables each
+small model to independently plan and execute tasks, with
+agents performing decentralized communication and coordi-
+nation. This method reduces the burden on the central node
+but may lead to poor coordination and resource wastage,
+particularly in complex tasks requiring efﬁcient collaboration.
+The lack of a global perspective in decentralized agents
+can result in uneven task distribution, redundant work, and
+suboptimal resource utilization.
+The Decentralized LLM (Fig. 3(b)) allows each agent to
+use a large language model for task planning and execution,
+communicating and coordinating in a decentralized way. While
+this enhances the decision-making capabilities of the agents,
+the high computational complexity of LLMs leads to reduced
+efﬁciency in resource-constrained environments.
+The Decentralized Hybrid Model (Fig. 3(c)) combines large
+and small models, with agents communicating and coor-
+dinating in a decentralized manner. Small models handle
+speciﬁc tasks, such as point-to-point path planning and obsta-
+cle avoidance, while large models are used for overall task
+decision-making. This approach improves efﬁciency to some
+extent but still suffers from the inherent issues of decentral-
+ization, such as high coordination complexity, lack of a global
+view, uneven resource distribution, and task redundancy.
+The Centralized LLM (Fig. 3(d)) employs a central LLM
+for task planning and scheduling, with all agents receiving
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 
+
+
+--- Page 5 ---
+YANG et al.: AutoHMA-LLM: EFFICIENT TASK COORDINATION AND EXECUTION IN HMAS USING HYBRID LLMs
+991
+Fig. 4.
+Task decomposition of AutoHMA-LLM. The system incorporates command delivery, task decomposition, agent collaboration, and feedback. Through
+iterative feedback and optimization, it ensures efﬁcient task allocation, robust agent coordination, and dynamic adaptability for reliable multi-agent operations
+in complex environments.
+and executing instructions from the central node. This method
+ensures uniform task distribution and scheduling but risks a
+single point of failure.
+The Centralized Small Model (Fig. 3(e)) utilizes a central
+small model for task planning and scheduling, with all agents
+following the central instructions. This approach is suitable for
+resource-limited environments but may struggle with complex
+tasks.
+The Centralized Hybrid Model (Fig. 3(f)) blends the central
+large and small models, combining the strengths of both to
+enhance system efﬁciency and reliability. This hybrid approach
+ensures a balanced and effective task execution, adapting to the
+limitations of edge devices while maintaining high operational
+efﬁciency.
+The
+proposed
+centralized
+hybrid
+model
+(Centralized-
+Hybrid) combines the advantages of both large and small
+models, offering an efﬁcient task planning and scheduling
+approach. The Cloud LLM works as a core coordination
+module, reﬁning task instructions in real-time according to
+subordinate information. The Device LLM, acting as the
+dispatcher, dynamically adjusts execution plans based on agent
+attributes and current task demands, directing Generative
+Agents to perform speciﬁc operations. This approach boasts
+efﬁcient scheduling and ﬂexibility: the central LLM handles
+complex task planning, while the Device LLM reﬁnes tasks
+and guides speciﬁc executions.
+The resource requirements of the centralized system can be
+represented as,
+RCENTRALIZED = CLLM +
+N
+
+i=1
+Ci,
+(8)
+where RCENTRALIZED is the total resource requirement of
+the centralized system, N is the number of agents, and Ci is
+the resource consumption of each agent.
+C. Introduction to Task Process
+The proposed framework achieves efﬁcient task planning
+and execution in multi-agent systems through four pri-
+mary parts: Command Delivery, Task Decomposition, Agent
+Collaboration, and Feedback. Each component is crucial
+in optimizing the performance of heterogeneous multi-agent
+systems, as shown in Figure 4.
+1) Command Delivery: The Command Delivery compo-
+nent transmits task instructions from the central control node
+to each agent. Speciﬁcally, the central control node generates
+an overall task plan based on mission requirements and
+disseminates these instructions to the individual agents. Upon
+receiving the instructions, each agent plans and executes its
+tasks according to the instructions received.
+Effective information transmission and coordination are
+critical during the command delivery process. Each agent must
+know its tasks and those of others to facilitate coordination
+and cooperation. This process can be expressed as,
+C(T) =
+N
+
+i=1
+Ci(T),
+(9)
+where C(T) denotes the set of commands at time T, Ci(T)
+represents the command delivered to agent i at time T, and N
+is the number of agents.
+2) Task Decomposition: Task Decomposition means break-
+ing down the overall task into multiple subtasks and assigning
+them to agents respectively. This step requires considering
+task dependencies and agent capability constraints to ensure
+efﬁcient execution of each subtask and achieving the overall
+task objectives. The process of task decomposition can be
+represented as,
+T =
+M
+
+j=1
+Tj ,
+(10)
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 
+
+
+--- Page 6 ---
+992
+IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. 11, NO. 2, APRIL 2025
+where T denotes the set of all tasks, Tj represents the j-
+th subtask, and M is the number of subtasks. Further task
+allocation can be detailed as,
+Tj =
+N
+
+i=1
+Tij .
+(11)
+During task decomposition, we provide the LLM with
+environmental information E (including objects and entities
+in the environment) and a list of primitive skills Δ that the
+agents can perform. This information helps the LLM generate
+subtasks T ′:
+T ′ = LLM(I , E, Δ),
+(12)
+where I is the input instruction, E is the environmental
+information, and Δ is the list of agent skills.
+3) Agent Collaboration: Agent Collaboration organizes
+and coordinates all nodes based on the decomposed tasks. It
+forms one or more agent coalitions to collaboratively complete
+tasks, considering communication and coordination among
+agents to ensure smooth task execution. The process of agent
+collaboration can be described as,
+A(T) =
+K
+
+k=1
+Ak(T),
+(13)
+where A(T) is the set of coalitions at time T, Ak(T) represents
+the k-th coalition at time T, and K is the number of coalitions.
+Each coalition’s composition can be expressed as,
+Ak(T) =
+Nk
+
+i=1
+i.
+(14)
+To achieve effective collaboration, the LLM analyzes the skill
+sets required for each subtask TSk and the skills of individual
+agents Si:
+A′(T) = LLM(T, S),
+(15)
+where T is the set of decomposed tasks for device control, and
+S is the set of agent skills.
+4) Feedback: The Feedback mechanism is a critical com-
+ponent of the proposed multi-agent framework, ensuring
+dynamic adaptability and optimization throughout task execu-
+tion. During each iteration, the central planner decomposes
+a global task into subtasks, assigning each device agent
+speciﬁc responsibilities (e.g., equipment inspection) along
+with corresponding 3D path points within the task space.
+Device agents then generate a globally optimized path and
+delegate speciﬁc 3D path computations to smaller models
+tailored for local execution. This iterative process incorporates
+multiple validation steps to ensure robust task execution. If
+any validation fails, the system reverts to the previous state;
+otherwise, successful feedback is integrated into the agents’
+prompts for subsequent iterations.
+This step ensures the subtask plan adheres to required
+formats and constraints. It validates the generated output by
+checking syntax accuracy, ensuring all required keywords
+and available actions are included. Furthermore, it evaluates
+whether each action satisﬁes the operational constraints of the
+task and the capabilities of the assigned agent. This early-stage
+check eliminates structural errors and ensures compatibility
+with the overall task objectives.
+After generating and executing actions, each Device LLM
+reviews its performance and provides localized feedback to the
+central planner. This feedback includes execution outcomes,
+encountered challenges, and adjustments made by the device
+agent. This mechanism allows for real-time reﬁnement of task
+decomposition and allocation strategies at the central level,
+enhancing overall system responsiveness.
+To prevent conﬂicts during path planning, the system
+employs global obstacle avoidance strategies, such as PID
+control, Nonlinear Model Predictive Control (NMPC), and Q-
+Learning. These methods verify that the planned path is free
+from collisions and adheres to environmental constraints. Any
+potential collision triggers a re-evaluation of the path, ensuring
+safe navigation through complex environments.
+The system evaluates intermediate waypoints to ensure
+smooth and efﬁcient transitions. It optimizes path charac-
+teristics by minimizing movement distance, balancing step
+distribution, and reducing execution time. The goal is to
+achieve the most effective trajectory for task completion while
+adhering to safety and resource constraints. If any validation
+step fails, the system attempts to replan the subtask up to a
+predeﬁned maximum number of iterations. Should the task
+remain incomplete within this limit, the iteration is marked as
+a failure, and the system proceeds to the next cycle without
+executing any incomplete actions.
+The combination of the central planner’s dynamic task
+decomposition, collaborative agent interactions, and compre-
+hensive feedback mechanisms forms a robust feedback loop.
+This loop continuously reﬁnes task execution at both local and
+global levels, enhancing the efﬁciency and reliability of the
+system. By leveraging self-correction, self-feedback, collision
+checks, and optimal path planning, the proposed framework
+ensures that multi-agent operations are adaptable, resilient,
+and capable of meeting the demands of diverse and dynamic
+environments.
+V. EXPERIMENTS
+A. Experimental Settings and Environment
+1) Experimental Settings: We conducted a comprehensive
+evaluation of the system across ﬁve key aspects [30]: task com-
+pletion, communication efﬁciency, algorithm cost, resource
+utilization, and fault tolerance. Task completion was assessed
+through Task Completion Accuracy (Success), deﬁned as
+the percentage of tasks successfully completed within speci-
+ﬁed time and resource constraints. Communication Efﬁciency
+was measured by tracking the number of Communication
+Steps (Steps) and the Tokens/Data Size exchanged between
+agents
+and
+the
+central
+planner,
+while
+Algorithm
+Cost
+was evaluated based on computational and communica-
+tion
+overhead,
+reﬂected
+by
+the
+number
+of
+API
+Calls
+required for algorithm execution. To provide a more detailed
+understanding of scalability and performance, we included
+Resource Utilization metrics, speciﬁcally Memory Usage per
+Device LLM (Memory) and System-Wide Computational
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 
+
+
+--- Page 7 ---
+YANG et al.: AutoHMA-LLM: EFFICIENT TASK COORDINATION AND EXECUTION IN HMAS USING HYBRID LLMs
+993
+Fig. 5.
+This ﬁgure illustrates three experimental scenarios: logistics, inspection, and search & rescue. In logistics, UAVs, vehicles, and robots transport items
+to target locations. In inspection, UAVs, robots, and sensors work together to monitor facilities. In search & rescue, UAVs, ships, and robots collaborate to
+locate and rescue individuals or items.
+Overhead (Computation), to gauge memory management
+and computational demands— both crucial for efﬁciency
+in resource-constrained environments. This multi-dimensional
+evaluation
+framework
+offers
+a
+thorough
+perspective
+on
+the AutoHMA-LLM system’s effectiveness and operational
+efﬁciency. The AutoHMA-LLM is applied in three sce-
+narios: logistics, inspection, and search & rescue. The
+scenario design is informed by insights from the review
+presented in [31], and detailed descriptions are provided in
+Figure 5.
+Logistics. In this scenario, multiple intelligent agents col-
+laborate to complete the transportation task of items, which
+uses UAVs, Autonomous Vehicles, and Warehouse Robots.
+Each agent moves along its path (red, blue, and green)
+according to task requirements and ultimately delivers the
+item to the designated location (star point). Inspection. In this
+scenario, UAVs, Inspection Robots, and Sensors collaborate to
+complete the facility’s inspection and monitoring tasks. UAVs
+ﬂy along the red path, robots move along the green path,
+and sensors are ﬁxed at a speciﬁc location. They coordinate
+their work through wireless communication to complete the
+facility’s inspection. Search & Rescue. In this scenario, UAVs,
+Ships, and Rescue Robots collaborate to carry out Search
+& Rescue missions. UAVs ﬂy along the red path, ships
+navigate the blue path, and robots move along the green path,
+intended to locate and rescue individuals or items trapped in
+a speciﬁc location. We will build single or hybrid large and
+small models to accomplish heterogeneous entity collaboration
+tasks in logistics, inspection, Search & Rescue scenarios
+under centralized and decentralized architectures. We choose
+GPT-4 [6] and Llama2-70B [8] as large models representing
+open-source and closed-source LLM, respectively. On the
+other hand, small models employ classic control algorithms,
+PID [28] and NMPC [29], along with the Q-learning [10].
+The controlled objects include the speed and direction of cars,
+the propeller speed and angle of ships, and UAVs’ attitude
+and quadcopter power. All experiments will be conducted
+in a MATLAB simulation environment, which realistically
+simulates environmental interference factors typical of these
+scenarios.
+Fig. 6.
+Experimental Results of the Centralization-Hybrid. The bar charts
+display the performance metrics, including Success (%), Steps, API Calls, and
+Tokens, for the Logistics, Inspection, and Search & Rescue scenarios.
+2) Experimental
+Environment: Logistics.
+We
+simulated
+intelligent logistics scenarios using MATLAB 9.12, in which
+cars, UAVs and robots collaborate to handle the task of item
+transportation and distribution. In order to simulate a real
+complex trafﬁc environment, we added cars with random
+destinations at a lane occupancy rate of 5% to 60%. Inspection.
+In MATLAB 9.12, UAVs, robots, and sensors collaborate to
+inspect and monitor the facility. To simulate harsh natural
+and communication environments, we set a 10% probability of
+communication delay and a 1% probability of terminal data
+communication loss to the system. Search & Rescue. Also
+simulated in MATLAB 9.12, in which UAVs, ships and robots
+collaborate to rescue people or property trapped at sea. We built
+a random rough surface with winds in irregular directions to
+simulate substantial interference on the sea.
+B. Success Rate Statistics and Analysis
+Table I shows the performance of the proposed method in
+three scenarios. Experimental results of the Centralization-
+Hybrid are shown in Figure 6. We have experimented with
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 
+
+
+--- Page 8 ---
+994
+IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. 11, NO. 2, APRIL 2025
+TABLE I
+THIS TABLE PRESENTS THE PERFORMANCE OF AUTOHMA-LLM ACROSS DIFFERENT SCENARIOS. THE CENTRALIZED HYBRID MODEL
+OFFERS THE BEST ACCURACY AND EFFICIENCY, WHILE THE DECENTRALIZED SMALL MODEL MINIMIZES COSTS BUT WITH LOWER
+ACCURACY. NOTE THAT, ALTHOUGH NOT EXPLICITLY SHOWN HERE, A ‘HYBRID’ VARIANT UNDER DECENTRALIZATION COULD
+ALSO BE CONSIDERED (WITH APPROPRIATE DATA, WHICH IS NOT PROVIDED)
+decentralized and centralized architecture designs. Under dif-
+ferent system architecture designs, control algorithms for
+small, large, and hybrid models were implemented separately,
+forming six strategies. Then, measure their Success, represent-
+ing the system’s accuracy; Steps, reﬂecting the ability to break
+down complex tasks; API Calls, showing the additional cost
+of executing strategies; and Tokens/Data Size, which means
+the complexity of the communication process. The results
+show that in both logistics and rescue scenarios, a centralized
+hybrid model architecture has the best accuracy in completing
+tasks. At the same time, the communication overhead is also
+moderate, making it the most cost-effective solution. The
+decentralized small model minimizes the cost (API calls and
+Tokens/Data Size). However, its accuracy is signiﬁcantly lower
+than the other ﬁve strategies, making it almost impossible to
+use in the real world.
+Centralized small models have lower communication costs
+and higher accuracy, making them a viable low-cost solution.
+The accuracy of large centralized models is lower than that of
+the former, and communication costs have sharply increased,
+making it a less cost-effective solution.
+The inspection scenario faces a harsh communication envi-
+ronment that weakens the heavy communication model in
+the system. Thus, the decentralized hybrid model performs
+best in this scenario because it eliminates complex and long
+distance communication with central nodes and also combines
+the collaborative ability of large models to compensate for the
+difﬁculty of miniature models in collaboration.
+Introducing large models can signiﬁcantly improve system
+accuracy, but it increases communication costs. The heavy
+communication requirements of large models often become
+system bottlenecks, so the excessive reliance on large models
+will reduce the system’s robustness. Combining large and
+small models can complement each other’s strengths, ensuring
+high accuracy while reducing communication costs.
+C. Model Performance Comparison
+Table II shows the performance of small model, large
+model, and hybrid model schemes in three tasks under a
+centralized architecture.The experimental results show that
+both GPT-4 and Llama2 can ﬁnish processing complex and
+heterogeneous data returned by the terminal and issuing
+instructions according to the speciﬁed protocol, reﬂecting
+the powerful information integration ability of LLM. Among
+them, whether as a central scheduler or terminal executor,
+GPT-4 has signiﬁcantly better system accuracy compared
+to Llama2, indicating that with the improvement of LLM
+comprehensive performance, there is also considerable room
+for improvement in the performance of control systems based
+on LLM agents.
+In Inspection scenario with an unreliable communication
+environment, a single LLM has the most signiﬁcant gap com-
+pared to the reinforcement learning scheme, with a reduction
+of about 8% to 16%. The reason is that when LLM participates
+as an agent in collaborative tasks, it needs to provide detailed
+descriptions of task rules, current environment, and current
+state in multiple rounds of dialogue, which leads to a surge in
+communication overhead. In scenarios with delays and packet
+losses, it is difﬁcult for the central module to issue correct,
+reliable, and timely instructions to the terminal. At this point,
+the advantage of hybrid models is particularly signiﬁcant, as
+they can asynchronously call traditional control algorithms
+or reinforcement learning models to solve most problems,
+avoiding serious deviations due to untimely communication.
+The LLM only needs to provide correction suggestions based
+on the current state at speciﬁc times.
+Besides, in the logistics and search & rescue scenarios
+without communication delay and packet loss, the hybrid
+architecture can still improve the system accuracy by about
+3% 16%. This is because the combination of the reinforcement
+learning model and LLM increases the diversity of terminal
+output, which signiﬁcantly beneﬁts the LLM module centrally
+scheduled. After all, the more diversiﬁed the information
+provided, the more it can stimulate the ability of LLM.
+D. Task Planning and Execution
+1) Task Planning: Figure 7 shows the experimental results
+of the multi-agent system we proposed in three complex
+scenarios: logistics, inspection and search & rescue. All agents
+(including UAVs, ground transportation robots, inspection
+robots, ships, etc.) in each scene will cooperate to complete the
+task. The ﬁgure shows the motion trajectories of each agent
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 
+
+
+--- Page 9 ---
+YANG et al.: AutoHMA-LLM: EFFICIENT TASK COORDINATION AND EXECUTION IN HMAS USING HYBRID LLMs
+995
+TABLE II
+PERFORMANCE OF MODELS UNDER CENTRALIZED ARCHITECTURE (VALUES ARE DISPLAYED AS PERCENTAGES). GPT-4
+OUTPERFORMS LLAMA2, AND HYBRID MODELS ENHANCE PERFORMANCE, ESPECIALLY IN UNRELIABLE COMMUNICATION
+ENVIRONMENTS. PERCENTAGE SIGNS (%) ARE OMITTED IN THE TABLE
+Fig. 7.
+Multi-Agent States under Different Scenarios. The ﬁgure illustrates
+the motion trajectories and task execution of agents in logistics, inspection,
+and search & rescue scenarios, showcasing the system’s ability to coordinate
+multi-agent tasks.
+at three different times and the location and path of the agent
+in the process of task execution.
+In the logistics scenario (Fig. 7a-7c), the agents include
+UAV (red path), ground transportation robot (blue path) and
+warehouse robot (green path). At T1 (Fig. 7a), the UAV takes
+off from its initial position, while the ground transportation
+robot and the warehouse robot also begin to move along the
+predetermined path. At T2 (Fig. 7b), the UAV continues to ﬂy
+in the air, and the ground transportation robot approaches its
+target position while the warehouse robot is in the middle of
+the path. The UAV reached the ﬁnal position at T3 (Fig. 7c),
+and the ground transportation robot completed transporting
+goods. At the same time, the warehouse robot also completed
+the task and arrived at the designated place.
+In the inspection scenario (Fig. 7d-7f), the agents include
+UAVs (red path), inspection robots (green path) and sensor
+(grey ﬁxed point). At T1 (Fig. 7d), the UAV takes off for
+patrol inspection, and the robot starts moving along the path
+while the sensor node is ﬁxed at a particular position. At T2
+(Figure 7e), the UAV patrols in the air and the inspection robot
+continues to move close to the equipment to be inspected. At
+T3 (Figure 7f), the UAV completes the inspection task, the
+robot completes the equipment inspection task, and the sensor
+node continues monitoring the environment.
+In the search & rescue scenario (Fig. 7g-7i), the agents
+include UAV (red path), ship (blue path) and rescue robot
+(green path). At T1 (Fig. 7g), the UAV took off to start the
+search task, while the ship and rescue robot began to move
+along the path. At T2 (Figure 7h), the UAV searches for targets
+in the air, the ship approaches the rescue position, and the
+rescue robot moves to the designated area. At T3 (Figure 7i),
+the UAV ﬁnds the target and completes the search task, the ship
+arrives at the rescue position, and the rescue robot completes
+the rescue task.
+The performance of this architecture veriﬁes its ability to
+work intelligently in heterogeneous agent systems. As the
+central planner, Cloud LLM is responsible for the overall
+planning and allocating of tasks. As the dispatcher, the Device
+LLM receives the task instructions from the cloud, details
+them into speciﬁc action parameters and transmits them to
+the Generative Agent. As the executor, the Generative Agent
+executes speciﬁc tasks according to the instructions of the
+Device LLM and feeds back the task execution status in
+real-time. Through the collaborative work of small models
+(Device LLM) and large models (Cloud LLM), efﬁcient task
+decomposition, task allocation, and execution processes are
+realized. In complex task scenarios, the system shows high
+ﬂexibility and reliability and effectively meets the challenges
+of multi-agent cooperation.
+2) Collision Preventation: There is a risk of collision
+between agents when performing multi-agent collaborative
+tasks in complex scenarios. This can also be seen as a unique
+collaborative problem, and all six strategies mentioned above
+can avoid it in an ideal environment. However, we found that
+the collision probability of control schemes based on large
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 
+
+
+--- Page 10 ---
+996
+IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. 11, NO. 2, APRIL 2025
+TABLE III
+COMPARES THE AUTOHMA-LLM FRAMEWORK WITH THE BASELINE METHOD [25] ACROSS LOGISTICS, INSPECTION, AND SEARCH & RESCUE
+SCENARIOS. THE TABLE HIGHLIGHTS IMPROVEMENTS IN TASK SUCCESS RATES, COMMUNICATION EFFICIENCY, AND COMPUTATIONAL
+PERFORMANCE, DEMONSTRATING THE ADVANTAGES OF AUTOHMA-LLM IN HETEROGENEOUS MULTI-AGENT ENVIRONMENTS
+Fig. 8.
+Obstacle Avoidance Effect. The Q-learning collision avoidance
+model enables quick and reliable prevention of agent collisions, effectively
+addressing delays in large model-based schemes.
+models could be better in actual simulation experiments. The
+reason is that the large models are relatively slower than others,
+and they cannot timely issue collision avoidance instructions
+in dynamic and complex environments. This is also one of
+the reasons why the accuracy of a single large model scheme
+in 4.2 is worse than that of a small model. Figure 8 shows
+a Q-learning collision avoidance model that can quickly and
+reliably achieve multi-agent collision avoidance. Integrating it
+into a hybrid model effectively solves the problem of delayed
+obstacle avoidance in large models, thereby ensuring the safety
+and practicality of the system.
+Our system’s fault tolerance and recovery mechanisms are
+designed to seamlessly handle agent failures or communication
+disruptions. When an agent fails or loses communication, the
+system automatically detects the failure and triggers a recovery
+process, which may involve reassigning tasks to other agents,
+using backup agents, or adjusting the task plan. The framework
+employs redundancy, where critical tasks are assigned to
+multiple agents to ensure task completion even in case of fail-
+ure. Communication disruptions are mitigated through periodic
+status checks and local decision-making, allowing agents to
+continue performing tasks autonomously until communication
+is restored, ensuring resilience and minimizing the impact of
+failures on task execution.
+E. Comparative Analysis With Existing Methodologies
+The
+results
+in
+Table III
+illustrate
+the
+advantages
+of
+the proposed AutoHMA-LLM framework over the base-
+line method in [25] in terms of task completion accuracy,
+communication efﬁciency, and computational performance
+across logistics, inspection, and search & rescue scenarios.
+AutoHMA-LLM demonstrates consistent superiority in task
+completion accuracy, achieving an 85.73% success rate in
+the logistics scenario compared to 81.42% with the method
+in [25]. Similar improvements are observed in the inspection
+and search & rescue scenarios, with AutoHMA-LLM outper-
+forming the baseline by 1.24% and 2.98%, respectively. These
+improvements underscore AutoHMA-LLM’s adaptability and
+robustness in heterogeneous multi-agent environments.
+AutoHMA-LLM also signiﬁcantly reduces communication
+overhead, as reﬂected in fewer communication steps, tokens
+exchanged, and API calls. For instance, in the logistics
+scenario, the number of communication steps decreased from
+9.55 to 5.11, and the token count reduced by 36.42%. These
+reductions are consistent across all scenarios, with API calls
+in the logistics task dropping by 32.32%. Such efﬁciency
+is attributed to the hybrid architecture of AutoHMA-LLM,
+which leverages lightweight, specialized models for localized
+decision-making, thereby reducing frequent interactions with
+the LLM. In contrast, the centralized coordination approach
+in [25] leads to higher communication demands.
+In terms of computational performance, the Memory (MB)
+statistic presented in Table III speciﬁcally refers to the
+memory usage of the Device LLM, reﬂecting the computa-
+tional footprint at the local device level. For instance, in the
+inspection scenario, AutoHMA-LLM reduces memory usage
+from 60 MB to 40 MB, while computation time is short-
+ened from 11.0 s to 7.8 s. This reduction demonstrates that
+AutoHMA-LLM achieves a better balance between memory
+consumption and processing efﬁciency. The ability to integrate
+high-level reasoning with task-speciﬁc computations enables
+AutoHMA-LLM to operate effectively in resource-constrained
+environments, offering signiﬁcant advantages over existing
+centralized methods.
+VI. CONCLUSION
+This paper proposes a new framework for efﬁcient task coor-
+dination and execution in heterogeneous multi-agent systems
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 
+
+
+--- Page 11 ---
+YANG et al.: AutoHMA-LLM: EFFICIENT TASK COORDINATION AND EXECUTION IN HMAS USING HYBRID LLMs
+997
+using LLMs. AutoHMA-LLM shows how Cloud LLM,
+Device LLM and Generative Agents can jointly optimize task
+planning, allocation and execution. Our method solves the
+traditional challenges in multi-agent systems by enhancing
+communication, reducing resource waste and improving the
+system’s overall efﬁciency. The experimental results verify
+our framework’s effectiveness in various application scenarios,
+highlighting its potential in dynamic and complex environ-
+ments. Future work will continue to improve our framework,
+explore more application scenarios, and enhance the adaptabil-
+ity and robustness of the system.
+REFERENCES
+[1] X. Wang, Y. Zhao, C. Qiu, Q. Hu, and V. C. M. Leung, “Socialized
+learning: A survey of the paradigm shift for edge intelligence in
+networked systems,” IEEE Commun. Surveys Tuts., vol. 26, no. 1,
+pp. 1–28, 1st Quart., 2024.
+[2] X. Wang, X. Ren, C. Qiu, Z. Xiong, H. Yao, and V. C. M. Leung,
+“Integrating
+edge
+intelligence
+and
+blockchain:
+What,
+why,
+and
+how,” IEEE Commun. Surveys Tuts., vol. 24, no. 2, pp. 1426–1456, 2nd
+Quart., 2022.
+[3] X. Wang, X. Ren, C. Qiu, Z. Xiong, H. Yao, and V. C. Leung,
+“Integrating
+edge
+intelligence
+and
+blockchain:
+What,
+why,
+and
+how,” IEEE Commun. Surveys Tuts., vol. 24, no. 4, pp. 2193–2229, 4th
+Quart., 2022.
+[4] X. Wang, Y. Han, V. C. M. Leung, D. Niyato, X. Yan, and X. Chen,
+Edge AI: Convergence of Edge Computing and Artiﬁcial Intelligence.
+Singapore: Springer, 2020, pp. 3–149.
+[5] G. Zhang, G. Yuan, D. Cheng, L. Liu, J. Li, and S. Zhang, “Mitigating
+propensity bias of large language models for recommender systems,”
+2024, arXiv:2409.20052.
+[6] J. Achiam et al., “GPT-4 technical report,” 2023, arXiv:2303.08774.
+[7] L. Floridi and M. Chiriatti, “GPT-3: Its nature, scope, limits, and
+consequences,” Minds Mach., vol. 30, pp. 681–694, Nov. 2020.
+[8] H. Touvron et al., “Llama 2: Open foundation and ﬁne-tuned chat
+models,” 2023, arXiv:2307.09288.
+[9] T. T. Nguyen, N. D. Nguyen, and S. Nahavandi, “Deep reinforcement
+learning for multiagent systems: A review of challenges, solutions,
+and applications,” IEEE Trans. Cybern., vol. 50, no. 9, pp. 3826–3839,
+Sep. 2020.
+[10] Y. Yang et al., “Multi-agent determinantal Q-learning,” in Proc. Int.
+Conf. Mach. Learn., 2020, pp. 10757–10766.
+[11] C. Berner et al., “Dota 2 with large scale deep reinforcement learning,”
+2019, arXiv:1912.06680.
+[12] T. Rashid, M. Samvelyan, C. S. De Witt, G. Farquhar, J. Foerster, and
+S. Whiteson, “Monotonic value function factorisation for deep multi-
+agent reinforcement learning,” J. Mach. Learn. Res., vol. 21, no. 178,
+pp. 1–51, 2020.
+[13] J. Wang, Z. Ren, T. Liu, Y. Yu, and C. Zhang, “QPLEX: Duplex dueling
+multi-agent q-learning,” 2020, arXiv:2008.01062.
+[14] A. Cohen et al., “On the use and misuse of absorbing states in multi-
+agent reinforcement learning,” 2021, arXiv:2111.05992.
+[15] J. Foerster, G. Farquhar, T. Afouras, N. Nardelli, and S. Whiteson,
+“Counterfactual multi-agent policy gradients,” in Proc. AAAI Conf. Artif.
+Intell., 2018, pp. 2974–2982.
+[16] M. Ahn et al., “Do as I can, not as I say: Grounding language in robotic
+affordances,” 2022, arXiv:2204.01691.
+[17] W. Huang et al., “Inner monologue: Embodied reasoning through
+planning with language models,” 2022, arXiv:2207.05608.
+[18] J. Liang et al., “Code as policies: Language model programs for
+embodied control,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA), 2023,
+pp. 9493–9500.
+[19] I. Singh et al., “ProgPrompt: Generating situated robot task plans using
+large language models,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA),
+2023, pp. 11523–11530.
+[20] H. Wang, G. Gonzalez-Pumariega, Y. Sharma, and S. Choudhury,
+“Demo2code: From summarizing demonstrations to synthesizing code
+via extended chain-of-thought,” in Proc. 37th Int. Conf. Neural Inf.
+Process. Syst., 2023, pp. 14848–14956.
+[21] Y. Chen, J. Arkin, Y. Zhang, N. Roy, and C. Fan, “Autotamp:
+Autoregressive task and motion planning with LLMs as translators and
+checkers,” 2023, arXiv:2306.06531.
+[22] X. Zhang, Y. Zhu, Y. Ding, Y. Zhu, P. Stone, and S. Zhang, “Visually
+grounded task and motion planning for mobile manipulation,” in Proc.
+Int. Conf. Robot. Autom. (ICRA), 2022, pp. 1925–1931.
+[23] G. Zhang, S. Zhang, and G. Yuan, “Bayesian graph local extrema
+convolution with long-tail strategy for misinformation detection,” ACM
+Trans. Knowl. Discov. Data, vol. 18, no. 4, pp. 1–21, 2024.
+[24] Z. Mandi, S. Jain, and S. Song, “RoCo: Dialectic multi-robot collabo-
+ration with large language models,” 2023, arXiv:2307.04738.
+[25] Y. Chen, J. Arkin, Y. Zhang, N. Roy, and C. Fan, “Scalable multi-robot
+collaboration with large language models: Centralized or decentralized
+systems?” 2023, arXiv:2309.15943.
+[26] S. S. Kannan, V. L. Venkatesh, and B.-C. Min, “SMART-LLM: Smart
+multi-agent robot task planning using large language models,” 2023,
+arXiv:2309.10062.
+[27] Y. Gao et al., “Asymmetric self-play-enabled intelligent heterogeneous
+multirobot catching system using deep multiagent reinforcement learn-
+ing,” IEEE Trans. Robot., vol. 39, no. 4, pp. 2603–2622, Aug. 2023.
+[28] M. A. Johnson and M. H. Moradi, PID Control. London, U.K.: Springer,
+2005, pp. 47–107.
+[29] V. M. Zavala and L. T. Biegler, “The advanced-step NMPC con-
+troller: Optimality, stability and robustness,” Automatica, vol. 45, no. 1,
+pp. 86–93, 2009.
+[30] S. Zhang, X. Li, M. Zong, X. Zhu, and D. Cheng, “Learning k for KNN
+classiﬁcation,” ACM Trans. Intell. Syst. Technol., vol. 8, no. 3, pp. 1–19,
+2017.
+[31] Z. Durante et al., “Agent AI: Surveying the horizons of multimodal
+interaction,” 2024, arXiv:2401.03568.
+Tingting Yang (Senior Member, IEEE) received
+Ph.D. degree from Dalian Maritime University in
+2010. She is currently holds the position of Professor
+with
+the
+Navigation
+College,
+Dalian
+Maritime
+University and the Peng Cheng Laboratory, China.
+Since September 2012, she has been afﬁliated
+with the Broadband Communications Research Lab,
+Department of Electrical and Computer Engineering,
+University of Waterloo, Canada, as a Visiting
+Scholar. Her research focuses on 6G networking,
+maritime wideband communication networks, DTN
+networks, and space-air-ground integrated systems. Additionally, she serves
+as an Associate Editor for IEEE NETWORK MAGAZINE, SpringerPlus, and
+IET Communications. She has also contributed as a Guest Editor for IEEE
+INTERNET OF THINGS JOURNAL and Computer Science. Her involvement
+extends to serving as a TPC Member for IEEE ICC’14 and ICC’15.
+Furthermore, she has been invited to serve as a Tutorial Co-Chair for IEEE
+ICC 2021, ICC 2023, and ICCC 2019.
+Ping Feng received the M.S. degree in Internet
+of Things Engineering in 2023. She is currently
+pursuing the Ph.D. degree with Dalian Maritime
+University, China. Her research interests are pri-
+marily focused on the multi-agent cooperation,
+distributed wireless networks, and embodied intelli-
+gence systems.
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 
+
+
+--- Page 12 ---
+998
+IEEE TRANSACTIONS ON COGNITIVE COMMUNICATIONS AND NETWORKING, VOL. 11, NO. 2, APRIL 2025
+Qixin Guo received the M.S.E. degree from Nanjing
+University, Jiangsu, China, in 2021. He is currently
+working on recommendation system research at
+Tencent, Shenzhen, China. He is interested in natural
+language processes, recommendation systems, and
+the practical application of the large language model.
+Jindi Zhang received the M.S. degree in mecha-
+tronics engineering from the Guangdong University
+of Technology, Guangdong, China, in 2021. He
+is currently pursuing the Ph.D. degree in self-
+reconﬁgurable robotics with The Chinese University
+of Hong Kong, Shenzhen, China. His research
+interests include tracking control and robot control.
+Xiufeng Zhang
+is currently a Professor with the
+School of Navigation, Dalian Maritime University.
+In recent years in the domestic and international
+journals and conferences published more than 50
+academic papers, in recent years, presided over or
+participated in the national 973 project, the National
+Natural Science Foundation of China, the Ministry
+of Transportation, and other scientiﬁc research
+projects, more than 100 items. His main research
+direction is ship motion modeling and simulation,
+and control technology.
+Jiahong Ning received the M.S. degree in elec-
+trical engineering from Minnesota State University,
+Mankato, MN, USA. He is currently pursuing
+the Ph.D. degree with Dalian Maritime University.
+His research interests encompass machine learning,
+large-scale distributed learning, wireless distributed
+learning, and wireless edge computing.
+Xinghan Wang is currently pursuing the Ph.D.
+degree with the School of Cyber Science and
+Engineering, Southeast University, Nanjing, China.
+His research interests include edge computing,
+network protocol design and analysis, and reinforce-
+ment learning.
+Zhongyang Mao received the Ph.D. degree from
+Naval Aviation University, Yantai, China, in 2011,
+where he is currently a Professor. His research
+areas include modern communication system and
+intelligent networking.
+Authorized licensed use limited to: Consortium - Saudi Arabia SDL. Downloaded on January 30,2026 at 19:04:37 UTC from IEEE Xplore.  Restrictions apply. 

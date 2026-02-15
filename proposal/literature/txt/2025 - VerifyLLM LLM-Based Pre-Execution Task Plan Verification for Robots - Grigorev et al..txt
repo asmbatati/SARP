@@ -1,0 +1,952 @@
+--- Page 1 ---
+arXiv:2507.05118v1  [cs.RO]  7 Jul 2025
+VerifyLLM: LLM-Based Pre-Execution Task Plan Verification for
+Robots
+Danil S. Grigorev1,2, Alexey K. Kovalev3,1, and Aleksandr I. Panov3,1
+Abstract— In the field of robotics, researchers face a critical
+challenge in ensuring reliable and efficient task planning. Veri-
+fying high-level task plans before execution significantly reduces
+errors and enhance the overall performance of these systems.
+In this paper, we propose an architecture for automatically
+verifying high-level task plans before their execution in simu-
+lator or real-world environments. Leveraging Large Language
+Models (LLMs), our approach consists of two key steps: first,
+the conversion of natural language instructions into Linear
+Temporal Logic (LTL), followed by a comprehensive analysis
+of action sequences. The module uses the reasoning capabilities
+of the LLM to evaluate logical coherence and identify potential
+gaps in the plan. Rigorous testing on datasets of varying
+complexity demonstrates the broad applicability of the module
+to household tasks. We contribute to improving the reliability
+and efficiency of task planning and addresses the critical need
+for robust pre-execution verification in autonomous systems.
+The code is available at https://verifyllm.github.io.
+I. INTRODUCTION
+Verifying robot action plans before execution remains
+a challenging task in robotics [1], [2]. Modern planning
+systems generate action sequences that appear correct at first
+glance but contain hidden errors that only become evident
+during execution. For example, a robot might attempt to pour
+water into an upside-down glass or a closed container. These
+errors do not stem from the robot’s physical limitations, but
+rather from action plans that fail to incorporate common
+sense and fundamental physical constraints that humans
+naturally take into account.
+Traditional planning systems based on PDDL [3] struggle
+with tasks requiring common sense reasoning, often over-
+looking essential preconditions (e.g., checking whether a
+container is empty before filling it [4]) and fail to con-
+sider action consequences(e.g., checking that the fridge is
+closed after interaction with it). Recent approaches have
+evolved from classical planning methods to learning-based
+techniques [5], which better handle uncertainty and complex
+environments. Large language model (LLM)-based frame-
+works have shown promising results for robotic task plan-
+ning [6]–[10]. However, most studies focus primarily on
+generating plans rather than verifying them [6], [8], [11],
+or provide verification mechanisms with limited scope due
+to their reliance on simple templates [12]. Researchers use
+Linear Temporal Logic (LTL) as a powerful formalism to
+specify robotic task requirements [13]. With its ability to
+express temporal relationships and logical constraints, LTL
+has been successfully applied to verify system properties
+1MIPT, Dolgoprudny, 141701, Russia 2Pyatigorsk State University, Py-
+atigorsk, Stavropol Krai, 357532, Russia 3AIRI, Moscow, 121170, Russia
+{kovalev,panov}@airi.net
+Fig. 1.
+VerifyLLM workflow for verification task plans. The system
+takes a generated action plan as input and analyzes it within the context
+window. Each window is processed by the LLM to identify position
+errors, missing prerequisites, and redundant actions. Based on this analysis,
+the system proposes improvements including reordering, adding necessary
+steps, and removing duplicates. The output is a refined action plan that
+maintains logical consistency and completeness. The example demonstrates
+verification of a tea preparation plan, where the system identifies and
+corrects issues with action ordering and missing prerequisites.
+in robotics [14], [15], though these methods often face
+challenges with natural language understanding. To address
+this challenge, we introduce VerifyLLM, a novel framework
+that integrates LTL with LLMs, as illustrated in Fig. 1.
+Our system first translates action plans into LTL formulas,
+offering a formal representation that captures temporal de-
+pendencies and logical constraints. The LLM then analyzes
+corresponding action sequences. This combination leverages
+the contextual understanding and common sense reasoning
+capabilities of LLMs [16] to detect potential errors before
+execution. To rigorously assess our framework, we introduce
+two specialized datasets annotated with LTL specifications:
+ALFRED-LTL, VirtualHome-LTL. ALFRED-LTL is derived
+from the ALFRED dataset [17], which consists of house-
+hold task instructions executed in a simulated environment.
+VirtualHome-LTL is adapted from VirtualHome [18], a
+dataset containing human-like activities modeled in a virtual
+environment.
+Our main contributions include:
+1) The development of VerifyLLM, a novel verification
+framework that combines formal LTL representations
+with LLM-based reasoning to systematically identify
+
+
+--- Page 2 ---
+inconsistencies in robot action plans. Our comprehen-
+sive evaluation demonstrates significant improvements
+in plan reliability across diverse household scenarios.
+2) The creation of two specialized datasets with LTL
+annotations: ALFRED-LTL, VirtualHome-LTL.
+II. RELATED WORKS
+A. Plan Verification
+Traditional plan verification approaches have typically
+relied on model checking, theorem proving, and formal
+methods applied to PDDL representations. These classical
+techniques [19], [20] verify plans against domain specifi-
+cations by systematically exploring state spaces to ensure
+all preconditions and effects are consistent. However, they
+often struggle with scaling to complex domains and lack the
+ability to incorporate common-sense knowledge that isn’t
+explicitly encoded in domain definitions. Recent research
+has increasingly explored the use of LLMs in robotic task
+planning. While most works focus on plan generation [6],
+[11], relatively few address the critical challenge of plan ver-
+ification.Current approaches primarily use LLMs to generate
+task plans from natural language instructions [6] or translate
+instructions into formal specifications [21]. Works like [22]
+attempt to verify plans by detecting and recovering from
+execution failures, showing improved success rates on small-
+scale tasks. However, these methods rely on simple tem-
+plates for describing failures (e.g., “object X is blocking”)
+and struggle with complex scenarios involving temporal
+dependencies and safety constraints.Approaches such as [23]
+and [21] focus on feasibility checking for generated plans
+but are limited to specific domains like motion planning.
+In [24], researchers introduced LLatrieval, a system where
+LLMs verify and iteratively improve retrieval results. Al-
+though focused on text generation, this verification approach
+parallels plan verification by using incremental checks to
+identify and correct errors. In [25], researchers proposed
+collaborative verification combining Chain-of-Thought and
+Program-of-Thought methods, demonstrating how different
+solution representations improve verification reliability. More
+specialized approaches have emerged, such as [26], which
+focuses on error recovery through continuous plan moni-
+toring, and [12], which addresses common-sense knowledge
+integration for robotics. While these methods address specific
+verification challenges, they tend to operate within limited
+contexts and don’t fully integrate temporal reasoning, safety
+preconditions, and physical world constraints simultaneously.
+Our approach aims to bridge this gap through contextual
+analysis of plan segments.
+The gap between plan generation and verification remains
+significant in robotics. Our VerifyLLM framework addresses
+this by systematically identifying three critical types of
+plan inconsistencies: position errors, missing prerequisites,
+and redundant actions. Unlike approaches in [24] and [25],
+we focus specifically on robotic task execution safety with
+actionable plan corrections that maintain commonsense con-
+sistency.
+B. Linear Temporal Logic
+Linear Temporal Logic (LTL) [27] has emerged as a pow-
+erful formalism for specifying robotic task requirements [13].
+With its ability to express temporal relationships and logical
+constraints, LTL is well-suited for representing the structure
+and dependencies within complex task plans [28]. Tradition-
+ally, researchers apply LTL in model checking and theorem
+proving to verify system properties [14], [15]; however, these
+methods often face challenges when addressing the nuances
+of natural language understanding and real-world complexity.
+The seminal work in [27] laid the foundation for using LTL
+in system verification, an approach later adapted to robotics
+in [13]. Subsequent advancements, such as those in [29],
+introduced robust temporal logics that enable more realistic
+modeling of continuous systems.Recent research has begun
+to explore the integration of formal methods with learning-
+based approaches. For instance, [30] proposed frameworks
+for verifiable reinforcement learning that incorporate safety
+constraints, while [12] introduced methods for common-
+sense verification through LLMs. These hybrid strategies
+aim to leverage the strengths of formal representations and
+natural language processing, albeit often within specific
+domains or simplified scenarios.In [31], mapping natural
+language to lifted LTL representations was investigated to
+improve generalization across domains. This work highlights
+the potential of LTL as an intermediate representation that
+captures key temporal and logical relationships, facilitating
+transferability and deeper understanding in complex tasks.
+Similarly, in [32], grounding language to non-Markovian
+tasks using LTL was explored with a focus on learning rather
+than strict formal verification.
+Overall, the research landscape indicates a need for ap-
+proaches that combine the expressive power of LTL in repre-
+senting temporal and logical dependencies with the language
+understanding capabilities of LLMs. While traditional formal
+methods emphasize strict verification, VerifyLLM approach
+employs LTL as an intermediate representation to enhance
+the interpretability and refinement of generated task plans.
+III. PRELIMINARIES
+We use Linear Temporal Logic [27] as our formal lan-
+guage for specifying robotic task requirements. LTL formulas
+follow this grammar:
+ϕ ::= p | ¬p | ϕ1 ∧ϕ2 | ϕ1 ∨ϕ2 | G(ϕ) | ϕ1Uϕ2 | F(ϕ) (1)
+where p ∈P represents atomic propositions describing the
+robot’s environment and possible states, ϕ denotes a task
+specification, and ϕ1, ϕ2 are LTL formulas. The basic logical
+operators include negation (¬), conjunction (∧), and disjunc-
+tion (∨). The temporal operators serve distinct purposes: the
+globally operator G specifies that a property must hold at all
+future time points, the until operator U indicates that ϕ1 must
+hold continuously until ϕ2 becomes true, and the eventually
+operator F requires that ϕ must become true at some future
+time point.
+
+
+--- Page 3 ---
+IV. FORMAL TASK DEFINITION
+The classical planning problem is typically defined as a
+tuple
+P = ⟨O, P, A, S, T, I, G, τ⟩,
+(2)
+where O denotes the set of objects in the environment,
+P represents the properties of these objects (e.g., their
+characteristics and affordances), A is the set of available
+actions, S is the set of possible states, T : S × A →S
+is the state transition function, I ∈S is the initial state,
+G ⊂S is the set of goal states, and τ is the task description
+provided in natural language (see Eq. 2 and Eq. 3).
+Since our work focuses on the quality of generated plans,
+we introduce the concept of a plan π as an ordered sequence
+of actions:
+π = ⟨a1, a2, . . . , an⟩,
+with ai ∈A,
+(3)
+and denote by Π the set of all admissible plans. For any
+given plan π, the set of transitions(E is defined as
+{(ai, ai+1) | 1 ≤i < n}.
+(4)
+To ensure the correctness of transitions (Eq. 4) between
+actions with respect to the task τ, we extend the formulation
+to include a verification procedure. The extended planning
+problem is defined as
+P = ⟨O, P, A, S, T, I, G, τ, Π, V ⟩.
+(5)
+The verification procedure V is designed to evaluate and
+refine the plan based on the problem description τ. Formally,
+the verification function is defined as
+V : Π × τ →Π,
+(6)
+i.e., it takes as input an initial plan πin ∈Π and a task
+description τ, and returns a refined plan πout ∈Π. The
+validity of the transitions is checked using common sense
+LLM reasoning combined with a formal specification ϕ (see
+Eq. 5 and Eq. 6).
+V. METHOD
+Plan verification for robots remains an underexplored chal-
+lenge. While existing research focuses on plan generation,
+current verification methods have significant limitations: for-
+mal approaches struggle with natural language understanding
+and learning-based methods require extensive training data.
+To address these gaps, we propose VerifyLLM, a framework
+combining LLM with LTL for comprehensive pre-execution
+verification of robot task plans.
+A. VerifyLLM Architecture
+Our framework, illustrated in Figure 2, does not generate
+action plans but verifies pre-generated sequences. These
+plans are produced by an external planner, and our approach
+focuses on ensuring their logical correctness before execu-
+tion. VerifyLLM enables systematic analysis of such task
+plans, addressing both logical consistency and contextual
+aspects before execution. The VerifyLLM architecture, pre-
+sented in Algorithm 1, comprises two main components: (1)
+Algorithm 1: VerifyLLM Plan Verification
+Input: Task description τ, action sequence
+π = {a1, ..., an}
+Output: Verificated sequence π′
+1 begin TranslateToLTL(τ)
+2
+E ←translation examples
+3
+return LLM(τ, E)
+4 end
+5 begin verificateSequence(π, ϕ)
+6
+π′ ←π
+7
+for i ←1 to |π′| do
+8
+ctx ←{π′[i −w : i + w]}
+// Extract
+window
+9
+props ←ExtractProps(ϕ)
+// Get
+propositions
+10
+switch LLM(ctx, props) do
+11
+case remove do
+12
+π′ ←π′ \ {π′[i]}
+// Remove
+redundant action
+13
+end
+14
+case move do
+15
+π′ ←Reorder(π′, i)
+// Fix
+position error
+16
+end
+17
+case augment do
+18
+π′ ←Insert(π′, i, GenPrereq(π′[i]))
+// Add missing
+prerequisite
+19
+end
+20
+end
+21
+end
+22
+return π′
+23 end
+24 ϕ ←TranslateToLTL(τ)
+// Convert task
+to LTL
+25 π′ ←verificateSequence(π, ϕ)
+// Initial verification
+26 while not Converged(π′) do
+27
+π′ ←verificateSequence(π′, ϕ)
+28 end
+29 return π′
+a Translation Module that converts action plans into Linear
+Temporal Logic (LTL) formulas, and (2) a Verification Mod-
+ule that analyzes these plans using LLM-based reasoning
+enhanced by the LTL formalism.
+The
+process
+begins
+with
+an
+action
+plan
+π
+=
+{a1, a2, ..., an} and a natural language task description τ. As
+shown in lines 1-4 of Algorithm 1, the Translation Module
+first converts τ into an LTL formula ϕ. This formula provides
+a formal representation of the task’s temporal and logical
+constraints. The Verification Module (lines 5-23) then uses
+this formula to analyze the action plan through a sliding
+window approach, identifying and correcting three types of
+issues: incorrectly positioned actions, missing prerequisites,
+
+
+--- Page 4 ---
+Fig. 2.
+The proposed LLM-based pre-execution validation framework. The system processes natural language plan through two main stages: (a) translation
+into formal temporal logic representations (LTL), (b) context common-sense enhancement.
+and redundant steps. Consider the following example plan
+for making tea: check timer, heat water, prepare cup, pour
+tea, add sugar, stir tea, pour tea, serve.
+Our VerifyLLM system would identify several issues with
+this plan:
+• Redundancy: Action 7 “pour tea” duplicates action 4,
+violating the non-redundancy principle
+• Missing prerequisite: There’s no action for adding a tea
+bag or tea leaves before pouring, which is a necessary
+prerequisite
+• Position error: The preparation sequence is problem-
+atic—we need to add tea before pouring water
+After verification, VerifyLLM would produce a corrected
+plan: check timer, heat water, prepare cup, add tea bag, pour
+hot water, add sugar, stir tea, serve.
+This example demonstrates how VerifyLLM identifies and
+corrects logical inconsistencies in robot action plans by
+leveraging LLM reasoning capabilities guided by formal LTL
+constraints.
+B. Translation to LTL
+The Translation Module converts task descriptions into
+LTL formulas that capture temporal dependencies and logical
+constraints. This module uses a LLM with few-shot prompt-
+ing to perform the translation.
+As shown in lines 1-4 of Algorithm 1, given a task
+description τ, the module generates an LTL formula ϕ
+through the following process:
+ϕ = LLM(τ, E) where E = {(e1, ϕ1), ..., (ek, ϕk)}
+(7)
+Here, E represents a set of example pairs where each ei is
+a task description and ϕi is its corresponding LTL formula.
+The prompt structure is designed to guide the LLM in
+extracting key propositions and their temporal relationships
+from the task description (Eq.7).
+For our simplified tea-making example “Heat water, add
+tea, serve” as shown in Fig. 1, the module would generate
+formula (Eq.8):
+ϕ = F(heat water) ∧F(add tea) ∧F(serve)
+(8)
+We verify formula correctness using the Spot library,
+which converts LTL formulas into B¨uchi automata for syntax
+validation. If errors are detected, the module employs a
+reprompting strategy to refine the formula up to three times.
+C. Verification Using LLM
+The verification Module, detailed in lines 5-23 of Algo-
+rithm 1, analyzes action sequences using a sliding window
+approach. For a window size w (typically set to 5 based on
+our empirical findings in Table IV), it examines consecutive
+action subsequences within the original plan π.
+For each action ai, the module examines its surrounding
+context:
+context(ai) = {prev1...w, ai, next1...w}
+(9)
+where prev1...w and next1...w represent up to w previous
+and upcoming actions within the window (lines 9-10 in
+Algorithm 1). The context (Eq.9) also includes relevant
+atomic propositions extracted from the LTL formula ϕ (line
+11 in Algorithm 1). The example in Fig. 3 demonstrates
+how the system analyzes action sequences for our tea-
+making scenario. The LLM identifies issues such as incorrect
+action ordering and redundant steps.This analysis evaluates
+four key aspects: position optimality (whether ai appears
+in the correct sequence), necessity (whether ai is essential
+for task completion) and compatibility (whether ai aligns
+with propositions from ϕ).Based on this analysis, the module
+generates a verification decision (lines 12-21 in Algorithm 1):
+If the decision is to keep, the action remains unchanged. For
+move, remove, or augment decisions, the module performs
+the corresponding modification to the plan (lines 13-21 in
+Algorithm 1).
+D. Prompt Engineering and Plan Optimization
+Our verification process relies on structured prompts with
+three main components, as shown in Fig. 3. The input context
+provides task description, atomic propositions derived from
+LTL formulas, and the action window (previous actions,
+current action, and next actions within the sliding window).
+
+
+--- Page 5 ---
+Fig. 3.
+Prompt used for guiding the LLM-based reasoning in plan
+validation.
+The analysis criteria guide the LLM through systematic ver-
+ification of position correctness, prerequisite completeness,
+and action necessity.
+In our tea example, the system would detect the missing
+prerequisite of adding tea before pouring water, identify the
+redundant second “pour tea” action, and suggest reordering
+steps into a logical sequence. The prompt enforces a struc-
+tured JSON response containing verification decisions with
+detailed reasoning and suggested modifications, as illustrated
+in the “Response Format” component of Fig. 3.
+Based on this analysis, the system employs three opera-
+tions to correct invalid plans: removal of redundant actions
+(line 15 in Algorithm 1) using R(π) = π \ {ai | ∃j ̸=
+i : conflict(ai, aj)}, addition of necessary preconditions (line
+19) through A(π, i, anew) = {a1, . . . , ai, anew, ai+1, . . . , an},
+and reordering to optimize sequences (line 17).
+Optimization continues iteratively until the plan end (lines
+24-27 in Algorithm 1). The system maintains interpretability
+by preserving the original intent while ensuring executability
+through modifications.
+VI. EXPERIMENTAL SETUP AND RESULTS
+Our experimental evaluation was designed to address
+several key aspects of the VerifyLLM framework: iden-
+tifying common error patterns in LLM-generated plans,
+measuring the impact of our verification approach on plan
+quality, analyzing the contribution of individual components
+through ablation studies. For our experiments, we used the
+VirtualHome [18] dataset from the ZeroShot planner [6].
+VirtualHome is a comprehensive benchmark that simulates
+household activities within a realistic virtual environment. It
+provides a diverse set of natural language task instructions
+along with corresponding action sequences for everyday
+tasks such as cooking, cleaning, and organizing. This dataset
+is richly annotated with details on object interactions and
+action dependencies, making it an ideal testbed for evaluating
+our plan verification and optimization methods. Prior to
+evaluation, we preprocess the action sequences by normaliz-
+ing the actions (e.g., converting to lowercase and removing
+prepositions) to ensure consistent comparison across metrics.
+This comprehensive evaluation approach allows us to assess
+both the effectiveness of our approach and identify areas for
+improvement.
+1) Evaluation Metrics: Our evaluation metrics for plan
+quality focus on overall sequence similarity and specific
+error types. One of the key metrics, LCS Similarity (LCS)
+metric quantifies the overall similarity between the original
+and optimized plan sequences. It is defined as:
+LCS = |LCS(S1, S2)|
+max(|S1|, |S2|),
+(10)
+where LCS(S1, S2) denotes the length of the longest com-
+mon subsequence between the original plan S1 and the op-
+timized plan S2. A value of 1 indicates identical sequences,
+while 0 indicates no commonality.
+In addition, we introduce three error metrics for detailed
+analysis of plan quality. Missing Actions counts the number
+of required actions that are present in the reference plan but
+absent from the generated plan. Formally, if Aref is the set
+of normalized actions from the reference plan and Agen is
+the set from the generated plan, then the number of Missing
+Actions is given by:
+Missing Actions = |Aref \ Agen| .
+(11)
+Extra Actions measures the number of unnecessary or
+redundant actions included in the generated plan that do not
+appear in the reference plan, defined as:
+Extra Actions = |Agen \ Aref| .
+(12)
+Order Errors quantify discrepancies in the sequential
+ordering of actions. Let Lref = [aref
+1 , aref
+2 , . . . , aref
+n ] and Lgen =
+[agen
+1 , agen
+2 , . . . , agen
+m ] be the ordered lists of normalized ac-
+tions from the reference and generated plans, respectively.
+The number of Order Errors is then computed as:
+Order Errors =
+min(n,m)
+X
+i=1
+1{agen
+i
+̸= aref
+i } + max(0, m −n),
+(13)
+where 1{·} is the indicator function, equal to 1 if the
+condition is true and 0 otherwise.
+A. Results and Analysis
+1) Common Types of Errors in Generated Plans: To
+understand the typical failure modes in language model-
+generated plans, we analyzed 71 instructions from the
+work [6]. We evaluated plans generated by five different
+models ranging from 0.5B to 3B parameters. As shown in
+Table I, our analysis revealed consistent patterns of errors
+across all models regardless of their size.
+Our findings identified three consistent types of plan errors
+across all tested models. Missing Actions (Eq. 11) were the
+
+
+--- Page 6 ---
+TABLE I
+ANALYSIS OF ERROR TYPES ACROSS DIFFERENT LANGUAGE MODELS
+WHEN GENERATING TASK PLANS.
+Model
+LCS
+Missing
+Extra
+Order
+Llama 3.2 (3B)
+0.0875
+10.28
+10.45
+17.58
+Llama 3.2 (1B)
+0.0717
+10.28
+9.14
+16.48
+Qwen 1.5 (0.5B)
+0.0690
+10.21
+9.01
+16.73
+Qwen 2.5 (3B)
+0.0680
+10.29
+7.51
+14.74
+Kanana Nano (2.1B)
+0.0650
+10.28
+8.80
+13.94
+first major issue: models consistently omitted 10-11 neces-
+sary actions per plan on average, including safety checks,
+preparatory steps, and environmental preconditions that hu-
+mans would naturally consider. The second type was Extra
+Actions (Eq. 12), where plans contained 7-10 superfluous ac-
+tions on average that either added unnecessary complexity or
+could potentially interfere with successful task completion.
+Order Errors (Eq. 13) emerged as the most prevalent issue,
+with 14-18 ordering mistakes per plan on average, indicating
+a significant challenge in understanding temporal dependen-
+cies. The Longest Common Subsequence (LCS) score, all
+below 0.09, further demonstrates the substantial divergence
+from optimal plans. These findings directly motivated the
+design of our verification system, particularly the inclusion of
+mechanisms for detecting missing prerequisites, identifying
+redundant actions, and optimizing action ordering.
+2) Impact of Verification Module: We used Llama-3.2-
+1B for verification across different types of baselines to
+evaluate the effectiveness of our approach. This allowed us to
+systematically assess how different verification methods per-
+form when implemented with the same underlying language
+model.
+We compared our VerifyLLM approach with three al-
+ternative verification methods to establish a comprehensive
+baseline:
+The Baseline Optimizer examines adjacent action pairs
+and suggests insertions based on direct analysis of consec-
+utive steps, using a straightforward prompt structure. The
+Chain of Thought (CoT) Optimizer employs explicit step-
+by-step reasoning to analyze transitions between actions,
+prompting the LLM to consider action goals, identify log-
+ical gaps, and reason about prerequisites. The Window-
+based Optimizer extends CoT by incorporating contextual
+information, analyzing actions within a sliding window to
+consider broader context when suggesting modifications.
+Table II presents a comprehensive comparison of these
+approaches alongside our VerifyLLM method using both
+Llama-3.2-1B and Claude as underlying models.
+The results reveal important insights about different ver-
+ification approaches. Overall, the three baseline methods
+showed limited effectiveness in improving plan quality.
+While they reduced the percentage of missing actions com-
+pared to the original Llama-3.2-1B results, they degraded
+performance across other key metrics. Among the baseline
+methods, CoT Optimization achieved the highest LCS score
+(0.0705), but this still represents poor sequence similarity to
+TABLE II
+COMPREHENSIVE COMPARISON OF DIFFERENT VERIFICATION
+APPROACHES
+Method
+LCS
+Missing
+Extra
+Order
+Baseline Opt.
+0.0656
+10.38
+11.40
+19.04
+CoT Opt.
+0.0705
+10.38
+9.35
+16.80
+Window Opt.
+0.0623
+10.38
+13.47
+22.84
+VerifyLLM (Llama)
+0.0982
+11.18
+9.13
+15.12
+VerifyLLM (Claude)
+0.183
+10.17
+8.32
+9.47
+TABLE III
+ABLATION STUDY RESULTS SHOWING THE IMPACT OF DIFFERENT
+COMPONENTS.
+Configuration
+LCS Sim.
+Missing
+Extra
+Order
+Full System
+0.183
+10.17
+8.32
+9.47
+No LTL Translation
+0.178
+10.25
+8.25
+9.80
+No LLM Verification
+0.0717
+10.28
+9.14
+16.48
+ground truth. All three baseline methods maintained identical
+missing action scores (10.38), suggesting a fundamental lim-
+itation in identifying and addressing missing prerequisites.
+The baseline approaches performed particularly poorly
+in terms of extra actions and ordering errors. Window
+Optimization significantly worsened the plan structure by
+introducing excessive extra actions (13.47) and substantially
+increasing ordering errors (22.84) compared to the original
+plan generation. Even the best-performing baseline, CoT
+Optimization, still introduced more unnecessary actions and
+ordering errors than would be acceptable for reliable robotic
+task execution.
+In contrast, our full VerifyLLM approach, especially when
+implemented with Claude, demonstrated substantial improve-
+ments across all metrics. The Claude-based implementation
+achieved a much higher LCS similarity (0.183), reduced
+missing actions (10.17), significantly decreased extra actions
+(8.32), and most notably, reduced ordering errors by nearly
+40% (9.47) compared to the best baseline method. These
+results clearly demonstrate that combining LLMs with formal
+logical guidance through LTL significantly enhances verifi-
+cation quality.
+3) Ablation Studies: To understand the contribution of
+each component in our system, we conducted comprehensive
+ablation studies. We systematically removed or modified
+key components and evaluated the impact on system per-
+formance. Table III presents the results of our ablation
+experiments.
+The ablation studies provided several important insights.
+Removing the LTL translation module resulted in only
+a modest degradation in performance: LCS similarity de-
+creased slightly from 0.183 to 0.178, and ordering errors
+increased from 9.47 to 9.80. This indicates that while the
+LTL module contributes to capturing temporal relationships
+between actions, its overall impact is relatively limited. In
+contrast, eliminating the LLM-based verification compo-
+nent had a dramatic effect on plan quality. Specifically,
+its removal led to a 74% increase in ordering errors (from
+
+
+--- Page 7 ---
+TABLE IV
+MODULE PERFORMANCE ACROSS DIFFERENT WINDOW SIZES.
+Dataset
+Window Size
+F1-score
+Zero-Shot
+3
+0.58
+Zero-Shot
+5
+0.65
+Zero-Shot
+7
+0.54
+9.47 to 16.48) and a 60% decrease in LCS similarity (from
+0.183 to 0.0717). These findings confirm that both formal
+logical guidance provided by the LTL module and the robust
+reasoning capabilities of the LLM are critical for effective
+plan verification. In our full system, the combination of these
+components offers complementary strengths that address
+different aspects of the verification process.
+4) Window Size Analysis: We experimented with differ-
+ent sliding window sizes to determine the optimal context
+length for processing plans. Table IV presents the F1-scores
+achieved with window sizes of 3, 5, and 7 actions on the
+Zero-Shot dataset.
+The results highlight that a window size of 5 yields the best
+F1-score (0.65), outperforming both smaller (3) and larger
+(7) windows. This suggests that an intermediate window size
+provides an optimal balance, capturing sufficient contextual
+information while avoiding excessive complexity or dilution
+of relevant details. A window that is too small (size 3) lacks
+adequate context for complex dependencies, while a larger
+window (size 7) introduces noise and irrelevant information
+that can confuse the model. Based on these findings, we
+selected a window size of 5 for all subsequent experiments.
+5) Motivation for Transitioning to Larger Models: Our
+experimental results strongly motivate a transition from
+smaller to larger language models for plan verification.
+Smaller models struggle with the intricate, nested vocabulary
+Fig. 3 required for comprehensive plan analysis. They often
+fail to capture long-range dependencies and nuanced contex-
+tual relationships, leading to suboptimal handling of multi-
+layered prompts. In contrast, larger models (e.g., those with
+3B parameters or the Claude variant) demonstrate enhanced
+capabilities in understanding complex temporal dependencies
+and logical relationships.
+As shown in Table II, the VerifyLLM system implemented
+with larger models achieves significantly higher LCS simi-
+larity scores and lower ordering errors, resulting in plans
+that more closely resemble the optimal structure. This per-
+formance gain is attributable to the larger models’ superior
+ability to process and understand multi-level nested prompts,
+making them better suited for tasks requiring detailed and
+hierarchical plan analysis.
+VII. CONCLUSION AND FUTURE WORK
+VerifyLLM combines Large Language Models with verifi-
+cation methods to address three critical plan inconsistencies:
+position errors, missing prerequisites, and redundant actions.
+Our key contributions include a framework for translating
+instructions into Linear Temporal Logic formulas, a con-
+textual analysis approach for validating action sequences,
+specialized datasets with LTL annotations. Experimental
+results demonstrate significant improvements in plan quality
+and verification accuracy across household domains, with
+consistent error patterns observed across different language
+models. Despite promising results, we acknowledge limita-
+tions including challenges with complex temporal dependen-
+cies and parallel task sequences. The system also needs better
+mechanisms for mapping between robot capabilities and
+generated plans. Future work will focus on handling complex
+temporal relationships, improving parallel task processing,
+and expanding beyond household domains to industrial,
+healthcare, and outdoor environments.
+REFERENCES
+[1] F. Taioli, S. Rosa, A. Castellini, L. Natale, A. Del Bue, A. Farinelli,
+M. Cristani, and Y. Wang, “Mind the error! detection and localization
+of instruction errors in vision-and-language navigation,” in 2024
+IEEE/RSJ International Conference on Intelligent Robots and Systems
+(IROS).
+IEEE, 2024, pp. 12 993–13 000.
+[2] T. Carta, C. Romac, T. Wolf, S. Lamprier, O. Sigaud, and P.-Y.
+Oudeyer, “Grounding large language models in interactive environ-
+ments with online reinforcement learning,” in International Conference
+on Machine Learning.
+PMLR, 2023, pp. 3676–3713.
+[3] M. Fox and D. Long, “Pddl2. 1: An extension to pddl for expressing
+temporal planning domains,” Journal of artificial intelligence research,
+vol. 20, pp. 61–124, 2003.
+[4] P. Sharma, B. Sundaralingam, V. Blukis, C. Paxton, T. Hermans,
+A. Torralba, J. Andreas, and D. Fox, “Correcting robot plans with
+natural language feedback,” arXiv preprint arXiv:2204.05186, 2022.
+[5] T. Ren, G. Chalvatzaki, and J. Peters, “Extended tree search for
+robot task and motion planning,” in 2024 IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS).
+IEEE, 2024,
+pp. 12 048–12 055.
+[6] W. Huang, P. Abbeel, D. Pathak, and I. Mordatch, “Language models
+as zero-shot planners: Extracting actionable knowledge for embodied
+agents,” in International conference on machine learning.
+PMLR,
+2022, pp. 9118–9147.
+[7] A. K. Kovalev and A. I. Panov, “Application of pretrained large
+language models in embodied artificial intelligence,” in Doklady
+Mathematics, vol. 106, no. Suppl 1.
+Springer, 2022, pp. S85–S90.
+[8] C. Sarkisyan, A. Korchemnyi, A. K. Kovalev, and A. I. Panov,
+“Evaluation of pretrained large language models in embodied planning
+tasks,” in International Conference on Artificial General Intelligence.
+Springer, 2023, pp. 222–232.
+[9] Z. Ni, X. Deng, C. Tai, X. Zhu, Q. Xie, W. Huang, X. Wu, and L. Zeng,
+“Grid: Scene-graph-based instruction-driven robotic task planning,” in
+2024 IEEE/RSJ International Conference on Intelligent Robots and
+Systems (IROS).
+IEEE, 2024, pp. 13 765–13 772.
+[10] A. Onishchenko, A. Kovalev, and A. Panov, “Lookplangraph:
+Embodied
+instruction
+following
+method
+with
+VLM
+graph
+augmentation,”
+in
+Workshop
+on
+Reasoning
+and
+Planning
+for
+Large
+Language
+Models,
+2025.
+[Online].
+Available:
+https://openreview.net/forum?id=B47cCZfJFa
+[11] S. M. Ahn, A. Brohan, N. Brown, Y. Chebotar, O. Cortes, B. David,
+C. Finn, K. Fu, K. Gopalakrishnan, K. Hausman, et al., “Can lan-
+guage models learn from explanations in context?” arXiv preprint
+arXiv:2204.02329, 2022.
+[12] D. S. Grigorev, A. K. Kovalev, and A. I. Panov, “Common sense plan
+verification with large language models,” International Conference on
+Hybrid Artificial Intelligence Systems, pp. 224–236, 2024.
+[13] H. Kress-Gazit, G. E. Fainekos, and G. J. Pappas, “Temporal-logic-
+based reactive mission and motion planning,” IEEE transactions on
+robotics, vol. 25, no. 6, pp. 1370–1381, 2009.
+[14] M. Lahijanian, M. R. Maly, D. Fried, L. E. Kavraki, H. Kress-
+Gazit, and M. Y. Vardi, “Iterative temporal planning in uncertain
+environments with partial satisfaction guarantees,” IEEE Transactions
+on Robotics, vol. 32, no. 3, pp. 583–599, 2016.
+[15] D. Aksaray, C.-I. Vasile, and C. Belta, “Distributed multi-robot co-
+ordination with time-scale temporal logic tasks,” IEEE International
+Conference on Robotics and Automation, pp. 2629–2634, 2016.
+
+
+--- Page 8 ---
+[16] C. H. Song, J. Wu, C. Washington, B. M. Sadler, W.-L. Chao,
+and Y. Su, “Llm-planner: Few-shot grounded planning for embodied
+agents with large language models,” in Proceedings of the IEEE/CVF
+International Conference on Computer Vision, 2023, pp. 2998–3009.
+[17] M. Shridhar, J. Thomason, D. Gordon, Y. Bisk, W. Han, R. Mottaghi,
+L. Zettlemoyer, and D. Fox, “ALFRED: A Benchmark for Interpreting
+Grounded Instructions for Everyday Tasks,” in The IEEE Conference
+on Computer Vision and Pattern Recognition (CVPR), 2020. [Online].
+Available: https://arxiv.org/abs/1912.01734
+[18] X. Puig, K. Ra, M. Boben, J. Li, T. Wang, S. Fidler, and A. Torralba,
+“Virtualhome: Simulating household activities via programs,” in Pro-
+ceedings of the IEEE Conference on Computer Vision and Pattern
+Recognition, 2018, pp. 8494–8502.
+[19] A. Cimatti, M. Roveri, A. Susi, and S. Tonetta, “From informal
+safety-critical requirements to property-driven formal validation,” in
+Proceedings of the Sixth NASA Langley Formal Methods Workshop,
+2008.
+[20] R. Howey, D. Long, and M. Fox, “Val: Automatic plan validation,
+continuous effects and mixed initiative planning using pddl,” in 16th
+IEEE International Conference on Tools with Artificial Intelligence.
+IEEE, 2004, pp. 294–301.
+[21] Z. Yang, C. Garrett, D. Fox, T. Lozano-P´erez, and L. P. Kaelbling,
+“Guiding long-horizon task and motion planning with vision language
+models,” arXiv preprint arXiv:2410.02193, 2024.
+[22] X. Zhang, Y. Ding, S. Amiri, H. Yang, A. Kaminski, C. Esselink,
+and S. Zhang, “Grounding classical task planners via vision-language
+models,” arXiv preprint arXiv:2304.08587, 2023.
+[23] K. Lin, C. Agia, T. Migimatsu, M. Pavone, and J. Bohg, “Text2motion:
+From natural language instructions to feasible plans,” Autonomous
+Robots, vol. 47, no. 8, pp. 1345–1365, 2023.
+[24] X. Li, C. Zhu, L. Li, Z. Yin, T. Sun, and X. Qiu, “LLatrieval:
+LLM-verified retrieval for verifiable generation,” in Proceedings
+of
+the
+2024
+Conference
+of
+the
+North
+American
+Chapter
+of
+the Association for Computational Linguistics: Human Language
+Technologies
+(Volume
+1:
+Long
+Papers),
+K.
+Duh,
+H.
+Gomez,
+and S. Bethard, Eds.
+Mexico City, Mexico: Association for
+Computational Linguistics, June 2024, pp. 5453–5471. [Online].
+Available: https://aclanthology.org/2024.naacl-long.305/
+[25] Z. Liang, Y. Liu, T. Niu, X. Zhang, Y. Zhou, and S. Yavuz, “Improving
+llm reasoning through scaling inference computation with collabora-
+tive verification,” arXiv preprint arXiv:2410.05318, 2024.
+[26] M. Skreta, Z. Zhou, J. L. Yuan, K. Darvish, A. Aspuru-Guzik, and
+A. Garg, “Replan: Robotic replanning with perception and language
+models,” arXiv preprint arXiv:2401.04157, 2024.
+[27] A. Pnueli, “The temporal logic of programs,” in 18th annual sympo-
+sium on foundations of computer science (sfcs 1977).
+ieee, 1977, pp.
+46–57.
+[28] A. Pnueli and Z. Manna, “The temporal logic of reactive and concur-
+rent systems,” Springer, vol. 16, p. 12, 1992.
+[29] G. E. Fainekos, A. Girard, H. Kress-Gazit, and G. J. Pappas, “Temporal
+logic motion planning for dynamic robots,” Automatica, vol. 45, no. 2,
+pp. 343–352, 2009.
+[30] A. Desai, S. Ghosh, S. A. Seshia, N. Shankar, and A. Tiwari, “Soter: A
+runtime assurance framework for programming safe robotics systems,”
+IEEE/IFIP International Conference on Dependable Systems and
+Networks, pp. 138–150, 2019.
+[31] E. Hsiung, H. Mehta, J. Chu, X. Liu, R. Patel, S. Tellex, and
+G. Konidaris, “Generalizing to new domains by mapping natural
+language to lifted ltl,” in 2022 International Conference on Robotics
+and Automation (ICRA).
+IEEE, 2022, pp. 3624–3630.
+[32] R. Patel, E. Pavlick, and S. Tellex, “Grounding language to non-
+markovian tasks with no supervision of task specifications.” in
+Robotics: Science and Systems, vol. 2020, 2020.
