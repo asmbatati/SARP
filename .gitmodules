@@ -1,0 +1,6 @@
+[submodule "ros2_agent_sim_docker"]
+	path = ros2_agent_sim_docker
+	url = https://github.com/asmbatati/ros2_agent_sim_docker.git
+[submodule "ros2_agent_sim"]
+	path = ros2_agent_sim
+	url = https://github.com/asmbatati/ros2_agent_sim.git
