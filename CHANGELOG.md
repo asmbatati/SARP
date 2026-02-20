@@ -4,6 +4,20 @@
 
 ---
 
+## Session 15 — 2026-02-21 (Early Morning)
+
+### 15.1 Global Submodule desktop.ini Purge & Git Repair
+
+**Prompt:**
+> Submodules have mane desktop.ini files. Please resolve all of them
+
+**Actions:**
+- **Global Recursive Purge**: Executed an exhaustive search and deletion of all `desktop.ini` files across the entire workspace, specifically targeting submodule directories (`ros2_agent_sim`, `safemrs`, `safemrs_sim`).
+- **Locks Cleared**: Removed `.git/packed-refs.lock` and `.git/index.lock` to resolve "Another git process seems to be running" errors.
+- **Verification**: Confirmed `git status` and `git pull` are fully operational and submodules are clean of any `desktop.ini` files.
+
+---
+
 ## Session 14 — 2026-02-19 (Night)
 
 ### 14.1 Third Implementation Roadmap Review — Spot Integration & Schema Fixes
