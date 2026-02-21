@@ -1,0 +1,111 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{2019_CooperativeHeterogeneous_rizk}
+\citation{2024_SMARTLLMSmart_kannan,2025_COHERENTCollaboration_liu,2025_DARTLLMDependencyAware_wang}
+\citation{2024_SMARTLLMSmart_kannan}
+\citation{2025_COHERENTCollaboration_liu}
+\citation{2025_DARTLLMDependencyAware_wang}
+\citation{2025_SafePlanLeveraging_obi,2025_VerifyLLMLLMBased_grigorev}
+\citation{2025_VerifyLLMLLMBased_grigorev,2025_LTLCodeGenCode_rabiei,2025_Nl2Hltl2PlanScaling_xu}
+\citation{2025_SafePlanLeveraging_obi}
+\citation{2025_SafePlanLeveraging_obi}
+\citation{2025_VerifyLLMLLMBased_grigorev}
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section.1}\protected@file@percent }
+\newlabel{sec:introduction}{{I}{1}{Introduction}{section.1}{}}
+\citation{2024_SMARTLLMSmart_kannan}
+\citation{2025_COHERENTCollaboration_liu}
+\citation{2025_DARTLLMDependencyAware_wang}
+\citation{2025_LaMMAPGeneralizable_zhang}
+\citation{2024_RoCoDialectic_mandia}
+\citation{2025_SafePlanLeveraging_obi}
+\citation{2025_VerifyLLMLLMBased_grigorev}
+\citation{2025_LTLCodeGenCode_rabiei}
+\citation{2025_Nl2Hltl2PlanScaling_xu}
+\citation{2025_SafetyAware_khan}
+\citation{2025_ProbabilisticallyCorrect_wanga}
+\citation{2025_SafePlanLeveraging_obi}
+\citation{2025_VerifyLLMLLMBased_grigorev}
+\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{section.2}\protected@file@percent }
+\newlabel{sec:related}{{II}{2}{Related Work}{section.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-A}}LLM-Based Multi-Robot Task Planning}{2}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-B}}Safety Verification for LLM-Generated Plans}{2}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-C}}Positioning and Research Gap}{2}{subsection.2.3}\protected@file@percent }
+\citation{2025_SafePlanLeveraging_obi}
+\citation{2025_VerifyLLMLLMBased_grigorev}
+\citation{2025_LTLCodeGenCode_rabiei}
+\citation{2025_Nl2Hltl2PlanScaling_xu}
+\citation{2025_SafetyAware_khan}
+\citation{2025_ProbabilisticallyCorrect_wanga}
+\citation{2025_LaMMAPGeneralizable_zhang}
+\citation{2016_Spot20_duret-lutz}
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Feature comparison of related safety verification approaches. \textbf  {Indep.}~= architecturally independent channels producing separate verdicts; \textbf  {Formal}~= uses formal logic (LTL/PDDL/deontic) for verification; \textbf  {LLM}~= uses LLM-based safety reasoning; \textbf  {Fusion}~= explicit mechanism to reconcile multiple verdicts; \textbf  {MRS}~= supports multi-robot coordination safety; \textbf  {Pre-Ex.}~= operates at pre-execution stage.}}{3}{table.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:related_comparison}{{I}{3}{Feature comparison of related safety verification approaches. \textbf {Indep.}~= architecturally independent channels producing separate verdicts; \textbf {Formal}~= uses formal logic (LTL/PDDL/deontic) for verification; \textbf {LLM}~= uses LLM-based safety reasoning; \textbf {Fusion}~= explicit mechanism to reconcile multiple verdicts; \textbf {MRS}~= supports multi-robot coordination safety; \textbf {Pre-Ex.}~= operates at pre-execution stage}{table.caption.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {III}Problem Formulation}{3}{section.3}\protected@file@percent }
+\newlabel{sec:problem}{{III}{3}{Problem Formulation}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-A}}Preliminaries and Definitions}{3}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-B}}Channel Characterization}{3}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-C}}Dual-Channel Complementarity}{3}{subsection.3.3}\protected@file@percent }
+\newlabel{thm:complementarity}{{1}{3}{Strict Complementarity}{theorem.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {IV}SAFEMRS Dual-Channel Architecture}{3}{section.4}\protected@file@percent }
+\newlabel{sec:architecture}{{IV}{3}{SAFEMRS Dual-Channel Architecture}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Agentic Reasoning Layer}{3}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:arl}{{\mbox  {IV-A}}{3}{Agentic Reasoning Layer}{subsection.4.1}{}}
+\citation{2016_Spot20_duret-lutz}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces SAFEMRS dual-channel architecture. A natural-language command is decomposed by the Agentic Planner into a canonical \texttt  {InternalPlan}, which is simultaneously verified by two architecturally independent channels. Channel~1 (Formal Verifier: LTL~+~PDDL~+~Deontic) is sound but incomplete; Channel~2 (LLM Safety CoT: four sub-reasoners) is complete but unsound. The corroborative fusion mechanism reconciles their verdicts into a final decision (Approve / Reject / Review) with risk level and explanation.}}{4}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:architecture}{{1}{4}{SAFEMRS dual-channel architecture. A natural-language command is decomposed by the Agentic Planner into a canonical \texttt {InternalPlan}, which is simultaneously verified by two architecturally independent channels. Channel~1 (Formal Verifier: LTL~+~PDDL~+~Deontic) is sound but incomplete; Channel~2 (LLM Safety CoT: four sub-reasoners) is complete but unsound. The corroborative fusion mechanism reconciles their verdicts into a final decision (Approve / Reject / Review) with risk level and explanation}{figure.caption.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Channel 1: Formal Logic Verifier}{4}{subsection.4.2}\protected@file@percent }
+\newlabel{sec:formal}{{\mbox  {IV-B}}{4}{Channel 1: Formal Logic Verifier}{subsection.4.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \texttt  {InternalPlan} data-flow. The canonical \texttt  {InternalPlan} dataclass is the single contract between all SAFEMRS modules. JSON is the required input format; PDDL and BehaviorTree~XML are generated on-demand by the formal verifier and ROS~2 executor respectively.}}{4}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:data_flow}{{2}{4}{\texttt {InternalPlan} data-flow. The canonical \texttt {InternalPlan} dataclass is the single contract between all SAFEMRS modules. JSON is the required input format; PDDL and BehaviorTree~XML are generated on-demand by the formal verifier and ROS~2 executor respectively}{figure.caption.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Channel 2: LLM Safety Chain-of-Thought Reasoner}{4}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:llm_safety}{{\mbox  {IV-C}}{4}{Channel 2: LLM Safety Chain-of-Thought Reasoner}{subsection.4.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Channel~1 formal verifier sub-module detail. Three complementary mechanisms---LTL model checking (via Spot~+~B\"uchi automata), PDDL precondition validation (via SequentialSimulator), and deontic constraint enforcement---collectively produce the formal verdict~$v_F$. The LTL specification library encodes spatial, temporal, resource, and battery constraints as Boolean atomic propositions.}}{5}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:formal_channel}{{3}{5}{Channel~1 formal verifier sub-module detail. Three complementary mechanisms---LTL model checking (via Spot~+~B\"uchi automata), PDDL precondition validation (via SequentialSimulator), and deontic constraint enforcement---collectively produce the formal verdict~$v_F$. The LTL specification library encodes spatial, temporal, resource, and battery constraints as Boolean atomic propositions}{figure.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Corroborative Fusion Mechanism}{5}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:fusion}{{\mbox  {IV-D}}{5}{Corroborative Fusion Mechanism}{subsection.4.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Corroborative fusion decision table. The four verdict combinations $(v_F, v_L)$ map to three outcomes (\textsc  {Approve}, \textsc  {Reject}, \textsc  {Review}) with associated risk levels used by the ROS~2 gating layer.}}{5}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:fusion}{{4}{5}{Corroborative fusion decision table. The four verdict combinations $(v_F, v_L)$ map to three outcomes (\textsc {Approve}, \textsc {Reject}, \textsc {Review}) with associated risk levels used by the ROS~2 gating layer}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-E}}Illustrative Example: Dual-Channel Trace}{5}{subsection.4.5}\protected@file@percent }
+\newlabel{sec:trace}{{\mbox  {IV-E}}{5}{Illustrative Example: Dual-Channel Trace}{subsection.4.5}{}}
+\citation{2025_COHERENTCollaboration_liu}
+\citation{2025_VerifyLLMLLMBased_grigorev}
+\citation{2025_SafePlanLeveraging_obi}
+\citation{2025_LaMMAPGeneralizable_zhang}
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces SAFEMRS-102 Benchmark: scenario distribution across 7 hazard categories.}}{6}{table.caption.6}\protected@file@percent }
+\newlabel{tab:benchmark}{{II}{6}{SAFEMRS-102 Benchmark: scenario distribution across 7 hazard categories}{table.caption.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-F}}ROS2 Execution Layer}{6}{subsection.4.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {V}Experiments}{6}{section.5}\protected@file@percent }
+\newlabel{sec:experiments}{{V}{6}{Experiments}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Benchmark: 7-Category Safety Evaluation}{6}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Baselines}{6}{subsection.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Main results on SAFEMRS-102 benchmark (Qwen3:8b backbone). HDR~= hazard detection rate on unsafe plans; FPR~= hard false positive rate on safe plans; Cov~= categories with HDR~$>80\%$ out of 7; $^\dagger $Review rate~= fraction of all scenarios escalated to human review (dual channel only); Lat.~= avg.\ verification latency.}}{6}{table.caption.7}\protected@file@percent }
+\newlabel{tab:main_results}{{III}{6}{Main results on SAFEMRS-102 benchmark (Qwen3:8b backbone). HDR~= hazard detection rate on unsafe plans; FPR~= hard false positive rate on safe plans; Cov~= categories with HDR~$>80\%$ out of 7; $^\dagger $Review rate~= fraction of all scenarios escalated to human review (dual channel only); Lat.~= avg.\ verification latency}{table.caption.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Evaluation Metrics}{6}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-D}}Main Results}{6}{subsection.5.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Per-category HDR on SAFEMRS-102 (Qwen3:8b backbone). Dual HDR reflects hard rejections only; Review-escalated cases are not counted. Bold marks categories where dual hard-rejection exceeds formal-only.}}{7}{table.caption.8}\protected@file@percent }
+\newlabel{tab:per_category}{{IV}{7}{Per-category HDR on SAFEMRS-102 (Qwen3:8b backbone). Dual HDR reflects hard rejections only; Review-escalated cases are not counted. Bold marks categories where dual hard-rejection exceeds formal-only}{table.caption.8}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces LLM backbone comparison: Qwen3:8b (local, Ollama) vs.\ GPT-4o (cloud). Dual-channel HDR and FPR measure the full SAFEMRS pipeline.}}{7}{table.caption.9}\protected@file@percent }
+\newlabel{tab:llm_comparison}{{V}{7}{LLM backbone comparison: Qwen3:8b (local, Ollama) vs.\ GPT-4o (cloud). Dual-channel HDR and FPR measure the full SAFEMRS pipeline}{table.caption.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-E}}LLM Backbone Comparison}{7}{subsection.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-F}}Disagreement Analysis}{7}{subsection.5.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-G}}Latency Analysis}{7}{subsection.5.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Conclusion}{7}{section.6}\protected@file@percent }
+\newlabel{sec:conclusion}{{VI}{7}{Conclusion}{section.6}{}}
+\bibstyle{IEEEtran}
+\bibdata{references.bib}
+\bibcite{2024_SMARTLLMSmart_kannan}{1}
+\bibcite{2025_COHERENTCollaboration_liu}{2}
+\bibcite{2025_DARTLLMDependencyAware_wang}{3}
+\bibcite{2025_SafePlanLeveraging_obi}{4}
+\bibcite{2025_VerifyLLMLLMBased_grigorev}{5}
+\bibcite{2025_LTLCodeGenCode_rabiei}{6}
+\bibcite{2025_Nl2Hltl2PlanScaling_xu}{7}
+\bibcite{2025_LaMMAPGeneralizable_zhang}{8}
+\bibcite{2024_RoCoDialectic_mandia}{9}
+\bibcite{2025_SafetyAware_khan}{10}
+\bibcite{2025_ProbabilisticallyCorrect_wanga}{11}
+\@writefile{toc}{\contentsline {section}{References}{8}{section*.11}\protected@file@percent }
+\gdef \@abspage@last{8}

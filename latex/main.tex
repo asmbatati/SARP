@@ -59,15 +59,23 @@
 \title{SAFEMRS: Corroborative Dual-Channel Pre-Execution Safety Verification for LLM-Based Heterogeneous Multi-Robot Task Planning}
 
 \author{
-\IEEEauthorblockN{
-Abdullah S. Batati\textsuperscript{1},
-Anis Koubaa\textsuperscript{1,2}
-}
-\IEEEauthorblockA{
-\textsuperscript{1}Department of Computer Science, Prince Sultan University, Riyadh, Saudi Arabia\\
-\textsuperscript{2}INESC TEC, Porto, Portugal\\
-\{abatati, akoubaa\}@psu.edu.sa
-}
+Abdulrahman S. Al-Batati\IEEEauthorrefmark{1}\thanks{Abdulrahman S. Al-Batati and Anis Koubaa contributed equally to this work.},
+Anis Koubaa\IEEEauthorrefmark{2}\footnotemark[1],
+Khaled Gabr\IEEEauthorrefmark{1},
+Serry Sibaee\IEEEauthorrefmark{1},
+Mohamed Abdelkader\IEEEauthorrefmark{1},
+Yasser Alhabashi\IEEEauthorrefmark{1},
+Fatimah Alahmed\IEEEauthorrefmark{1},
+Imen Jarraya\IEEEauthorrefmark{1},
+Wadii Boulila\IEEEauthorrefmark{1}
+
+\thanks{\IEEEauthorrefmark{1}Robotics and IoT Lab, Prince Sultan University, Riyadh 12435, Saudi Arabia.}
+
+\thanks{\IEEEauthorrefmark{2}College of Computer and Information Sciences, Alfaisal University, Riyadh, Saudi Arabia.}
+
+\thanks{Emails: 
+\{aalbatati, khammad, ssibaee, mabdelkader, yalhabashi, falahmed, ijarraya, wboulila\}@psu.edu.sa; 
+akoubaa@alfaisal.edu}
 }
 
 \maketitle
@@ -90,12 +98,12 @@ Multi-Robot Systems, Safety Verification, Large Language Models, Formal Methods,
 \label{sec:introduction}
 
 % --- Opening: Problem context (≈150 words) ---
-Heterogeneous multi-robot systems (MRS) are increasingly deployed in safety-critical domains---search and rescue, infrastructure inspection, and environmental monitoring---where teams of aerial and ground robots must coordinate complex missions under tight spatial, temporal, and resource constraints~\cite{ref_mrs_survey}. Recent advances in large language models (LLMs) have enabled a paradigm shift in multi-robot task planning: humans can now issue high-level natural-language commands that are automatically decomposed into structured multi-robot plans~\cite{ref_smart_llm, ref_coherent, ref_dart_llm}. Frameworks such as SMART-LLM~\cite{ref_smart_llm}, COHERENT~\cite{ref_coherent}, and DART-LLM~\cite{ref_dart_llm} have demonstrated impressive planning capabilities across diverse robotic platforms.
+Heterogeneous multi-robot systems (MRS) are increasingly deployed in safety-critical domains---search and rescue, infrastructure inspection, and environmental monitoring---where teams of aerial and ground robots must coordinate complex missions under tight spatial, temporal, and resource constraints~\cite{2019_CooperativeHeterogeneous_rizk}. Recent advances in large language models (LLMs) have enabled a paradigm shift in multi-robot task planning: humans can now issue high-level natural-language commands that are automatically decomposed into structured multi-robot plans~\cite{2024_SMARTLLMSmart_kannan, 2025_COHERENTCollaboration_liu, 2025_DARTLLMDependencyAware_wang}. Frameworks such as SMART-LLM~\cite{2024_SMARTLLMSmart_kannan}, COHERENT~\cite{2025_COHERENTCollaboration_liu}, and DART-LLM~\cite{2025_DARTLLMDependencyAware_wang} have demonstrated impressive planning capabilities across diverse robotic platforms.
 
 % --- Problem statement: Safety gap (≈200 words) ---
-However, LLM-generated plans are fundamentally unreliable for safety-critical deployment. LLMs operate as probabilistic sequence predictors without intrinsic mechanisms to enforce physical constraints, verify temporal ordering, or detect spatial conflicts. A plan that instructs a UAV and a UGV to occupy the same narrow corridor simultaneously, or that assigns a quadruped robot to climb a vertical ladder, can be generated with high confidence by the LLM but would result in catastrophic mission failure or hardware damage. This safety gap is not merely theoretical: recent studies have documented significant error rates in unchecked LLM-generated task plans~\cite{ref_safeplan, ref_verifyllm}.
+However, LLM-generated plans are fundamentally unreliable for safety-critical deployment. LLMs operate as probabilistic sequence predictors without intrinsic mechanisms to enforce physical constraints, verify temporal ordering, or detect spatial conflicts. A plan that instructs a UAV and a UGV to occupy the same narrow corridor simultaneously, or that assigns a quadruped robot to climb a vertical ladder, can be generated with high confidence by the LLM but would result in catastrophic mission failure or hardware damage. This safety gap is not merely theoretical: recent studies have documented significant error rates in unchecked LLM-generated task plans~\cite{2025_SafePlanLeveraging_obi, 2025_VerifyLLMLLMBased_grigorev}.
 
-Existing approaches address this gap through formal verification~\cite{ref_verifyllm, ref_ltlcodegen, ref_nl2hltl2plan}, LLM-based safety reasoning~\cite{ref_safeplan}, or combinations thereof. SafePlan~\cite{ref_safeplan} integrates formal logic with Chain-of-Thought (CoT) reasoning within a single pipeline to screen unsafe prompts and verify generated code. VerifyLLM~\cite{ref_verifyllm} uses LTL as an intermediate representation to guide LLM-based plan analysis. However, in all existing approaches, formal logic and LLM reasoning operate within a \emph{single integrated pipeline}---formal constraints are embedded into the LLM's prompt context rather than producing an independent verdict. Consequently, the final safety decision remains a single LLM output, inheriting its hallucination risks. Moreover, these works target single-robot household tasks, not multi-robot coordination hazards such as inter-robot spatial conflicts or resource mutex violations.
+Existing approaches address this gap through formal verification~\cite{2025_VerifyLLMLLMBased_grigorev, 2025_LTLCodeGenCode_rabiei, 2025_Nl2Hltl2PlanScaling_xu}, LLM-based safety reasoning~\cite{2025_SafePlanLeveraging_obi}, or combinations thereof. SafePlan~\cite{2025_SafePlanLeveraging_obi} integrates formal logic with Chain-of-Thought (CoT) reasoning within a single pipeline to screen unsafe prompts and verify generated code. VerifyLLM~\cite{2025_VerifyLLMLLMBased_grigorev} uses LTL as an intermediate representation to guide LLM-based plan analysis. However, in all existing approaches, formal logic and LLM reasoning operate within a \emph{single integrated pipeline}---formal constraints are embedded into the LLM's prompt context rather than producing an independent verdict. Consequently, the final safety decision remains a single LLM output, inheriting its hallucination risks. Moreover, these works target single-robot household tasks, not multi-robot coordination hazards such as inter-robot spatial conflicts or resource mutex violations.
 
 % --- Gap statement (≈100 words) ---
 \textbf{Gap.} No existing framework runs formal logic verification and LLM-based safety reasoning as \emph{architecturally independent channels} that produce separate verdicts and reconcile them through a corroborative fusion mechanism. Furthermore, no prior work addresses pre-execution safety verification specifically for \emph{heterogeneous multi-robot} task plans, where inter-robot constraints (spatial, temporal, resource) introduce hazard categories absent from single-robot settings.
@@ -127,29 +135,29 @@ The remainder of this paper is organized as follows. Section~\ref{sec:related} r
 \subsection{LLM-Based Multi-Robot Task Planning}
 
 Recent work has explored LLMs as planners for multi-robot systems.
-SMART-LLM~\cite{ref_smart_llm} uses a three-phase pipeline (task decomposition, coalition formation, task allocation) for heterogeneous teams.
-COHERENT~\cite{ref_coherent} introduces LLM-based negotiation among robot agents for consensus-driven coordination.
-DART-LLM~\cite{ref_dart_llm} embeds robot capability reasoning into the LLM prompt to generate dependency-aware task plans for heterogeneous fleets.
-LaMMA-P~\cite{ref_lamma_p} combines LLMs with PDDL planning for grounded, verifiable plan generation.
-RoCo~\cite{ref_roco} enables multi-robot collaboration through dialectic LLM discussion for sub-task planning and waypoint generation.
+SMART-LLM~\cite{2024_SMARTLLMSmart_kannan} uses a three-phase pipeline (task decomposition, coalition formation, task allocation) for heterogeneous teams.
+COHERENT~\cite{2025_COHERENTCollaboration_liu} introduces LLM-based negotiation among robot agents for consensus-driven coordination.
+DART-LLM~\cite{2025_DARTLLMDependencyAware_wang} embeds robot capability reasoning into the LLM prompt to generate dependency-aware task plans for heterogeneous fleets.
+LaMMA-P~\cite{2025_LaMMAPGeneralizable_zhang} combines LLMs with PDDL planning for grounded, verifiable plan generation.
+RoCo~\cite{2024_RoCoDialectic_mandia} enables multi-robot collaboration through dialectic LLM discussion for sub-task planning and waypoint generation.
 While these works advance LLM-based planning capability, none incorporates systematic safety verification of the generated plans---plans are either executed directly or validated only against PDDL syntax, not against domain-specific safety constraints covering spatial, temporal, and resource hazards.
 
 % --- 2.2 Safety in LLM-based planning (≈300 words) ---
 \subsection{Safety Verification for LLM-Generated Plans}
 
-\textbf{SafePlan}~\cite{ref_safeplan} is the closest work to ours in combining formal logic with LLM-based reasoning for safety.
+\textbf{SafePlan}~\cite{2025_SafePlanLeveraging_obi} is the closest work to ours in combining formal logic with LLM-based reasoning for safety.
 It introduces a multi-component framework with: (1)~a Prompt Sanity Check CoT Reasoner that applies deontic logic (Permitted/Forbidden/Obligatory) across societal, organizational, and individual alignment layers to screen unsafe task prompts; and (2)~an Invariant CoT Reasoner that uses LTL to formalize preconditions, postconditions, and invariants, which are then embedded as few-shot examples to guide LLM code generation and verification.
 However, SafePlan's formal logic and LLM reasoning operate within a \emph{single integrated pipeline}---formal constraints are operationalized as structured system prompts that guide the \emph{same} LLM through chain-of-thought reasoning, meaning the final safety verdict is a single LLM output.
 Furthermore, SafePlan targets \emph{prompt-level} safety (filtering harmful commands such as ``pour detergent into a child's cup'') and single-robot code correctness in household settings (AI2-THOR), rather than multi-robot \emph{plan-level} coordination hazards.
 
-\textbf{VerifyLLM}~\cite{ref_verifyllm} translates task plans into LTL formulas and uses the Spot library for \emph{syntactic} validation of the generated LTL.
+\textbf{VerifyLLM}~\cite{2025_VerifyLLMLLMBased_grigorev} translates task plans into LTL formulas and uses the Spot library for \emph{syntactic} validation of the generated LTL.
 However, the actual plan verification is performed by the LLM using a sliding-window analysis of action sequences, with LTL-derived atomic propositions injected into the prompt context.
 Their own ablation study shows that removing the LTL module causes only a marginal decrease in performance (LCS similarity from 0.183 to 0.178), confirming that the LLM performs the primary reasoning.
 VerifyLLM targets single-robot household plan \emph{quality} (ordering errors, missing prerequisites, redundant actions), not safety-critical hazard detection for multi-robot coordination.
 
-LTLCodeGen~\cite{ref_ltlcodegen} guarantees syntactically correct LTL generation but provides no semantic safety reasoning.
-NL2HLTL2PLAN~\cite{ref_nl2hltl2plan} supports hierarchical temporal logic specifications but does not incorporate LLM-based safety analysis.
-In the runtime domain, SAFER~\cite{ref_safer} applies Control Barrier Functions (CBFs) for trajectory-level enforcement, and S-ATLAS~\cite{ref_satlas} uses conformal prediction for probabilistic safety bounds---but both operate at \emph{execution time}, not at the plan verification stage.
+LTLCodeGen~\cite{2025_LTLCodeGenCode_rabiei} guarantees syntactically correct LTL generation but provides no semantic safety reasoning.
+NL2HLTL2PLAN~\cite{2025_Nl2Hltl2PlanScaling_xu} supports hierarchical temporal logic specifications but does not incorporate LLM-based safety analysis.
+In the runtime domain, SAFER~\cite{2025_SafetyAware_khan} applies Control Barrier Functions (CBFs) for trajectory-level enforcement, and S-ATLAS~\cite{2025_ProbabilisticallyCorrect_wanga} uses conformal prediction for probabilistic safety bounds---but both operate at \emph{execution time}, not at the plan verification stage.
 
 % --- 2.3 Positioning and gap (≈150 words) ---
 \subsection{Positioning and Research Gap}
@@ -159,7 +167,7 @@ SAFEMRS differs from prior work in three specific ways:
 \begin{enumerate}
     \item \textbf{Architecturally independent channels.} Unlike SafePlan and VerifyLLM, where formal logic is embedded \emph{inside} the LLM's prompt to guide a single reasoning pipeline, SAFEMRS runs two \emph{fully independent} channels that each produce a separate verdict without access to the other's output.
     \item \textbf{Corroborative fusion with disagreement handling.} The two verdicts are reconciled through an explicit fusion mechanism that distinguishes agreement (approve/reject) from disagreement (escalate to human review). No prior work provides such a mechanism.
-    \item \textbf{Multi-robot coordination safety.} Prior work addresses single-robot prompt safety~\cite{ref_safeplan} or plan quality~\cite{ref_verifyllm}. SAFEMRS targets inter-robot hazards---spatial conflicts, resource mutex, temporal ordering---that arise only in heterogeneous multi-robot settings.
+    \item \textbf{Multi-robot coordination safety.} Prior work addresses single-robot prompt safety~\cite{2025_SafePlanLeveraging_obi} or plan quality~\cite{2025_VerifyLLMLLMBased_grigorev}. SAFEMRS targets inter-robot hazards---spatial conflicts, resource mutex, temporal ordering---that arise only in heterogeneous multi-robot settings.
 \end{enumerate}
 
 \begin{table}[t]
@@ -168,21 +176,22 @@ SAFEMRS differs from prior work in three specific ways:
 \label{tab:related_comparison}
 \small
 \setlength{\tabcolsep}{3pt}
+\resizebox{0.49\textwidth}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 \textbf{System} & \textbf{Indep.} & \textbf{Formal} & \textbf{LLM} & \textbf{Fusion} & \textbf{MRS} & \textbf{Pre-Ex.} \\
 \midrule
-SafePlan~\cite{ref_safeplan}        & \texttimes & \checkmark & \checkmark & \texttimes & \texttimes & \checkmark \\
-VerifyLLM~\cite{ref_verifyllm}      & \texttimes & \checkmark & \checkmark & \texttimes & \texttimes & \checkmark \\
-LTLCodeGen~\cite{ref_ltlcodegen}    & \texttimes & \checkmark & \texttimes & \texttimes & \texttimes & \checkmark \\
-NL2HLTL2PLAN~\cite{ref_nl2hltl2plan}& \texttimes & \checkmark & \texttimes & \texttimes & \texttimes & \checkmark \\
-SAFER~\cite{ref_safer}              & \texttimes & \checkmark & \texttimes & \texttimes & \checkmark & \texttimes \\
-S-ATLAS~\cite{ref_satlas}           & \texttimes & \texttimes & \texttimes & \texttimes & \checkmark & \texttimes \\
-LaMMA-P~\cite{ref_lamma_p}          & \texttimes & \checkmark & \texttimes & \texttimes & \checkmark & \checkmark \\
+SafePlan~\cite{2025_SafePlanLeveraging_obi}        & \texttimes & \checkmark & \checkmark & \texttimes & \texttimes & \checkmark \\
+VerifyLLM~\cite{2025_VerifyLLMLLMBased_grigorev}      & \texttimes & \checkmark & \checkmark & \texttimes & \texttimes & \checkmark \\
+LTLCodeGen~\cite{2025_LTLCodeGenCode_rabiei}    & \texttimes & \checkmark & \texttimes & \texttimes & \texttimes & \checkmark \\
+NL2HLTL2PLAN~\cite{2025_Nl2Hltl2PlanScaling_xu}& \texttimes & \checkmark & \texttimes & \texttimes & \texttimes & \checkmark \\
+SAFER~\cite{2025_SafetyAware_khan}              & \texttimes & \checkmark & \texttimes & \texttimes & \checkmark & \texttimes \\
+S-ATLAS~\cite{2025_ProbabilisticallyCorrect_wanga}           & \texttimes & \texttimes & \texttimes & \texttimes & \checkmark & \texttimes \\
+LaMMA-P~\cite{2025_LaMMAPGeneralizable_zhang}          & \texttimes & \checkmark & \texttimes & \texttimes & \checkmark & \checkmark \\
 \midrule
 \textbf{SAFEMRS (ours)}             & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 
@@ -216,7 +225,7 @@ Let $\mathcal{H} = \{h_1, h_2, \ldots, h_K\}$ be a set of $K$ hazard categories.
 
 We characterize the two verification channels as follows:
 
-\textbf{Formal Logic Channel} $V_F$: Encodes safety constraints as LTL formulas $\varphi$ and PDDL preconditions/effects. Uses model checking (via Spot~\cite{ref_spot}) to verify $\pi \models \varphi$. This channel is \emph{sound} (every flagged violation corresponds to a genuine constraint violation in the formal model) but \emph{incomplete} (can only verify properties expressible in LTL/PDDL---cannot reason about common-sense hazards such as ``ceiling fans are dangerous for drones'' or ``quadrupeds cannot climb ladders'').
+\textbf{Formal Logic Channel} $V_F$: Encodes safety constraints as LTL formulas $\varphi$ and PDDL preconditions/effects. Uses model checking (via Spot~\cite{2016_Spot20_duret-lutz}) to verify $\pi \models \varphi$. This channel is \emph{sound} (every flagged violation corresponds to a genuine constraint violation in the formal model) but \emph{incomplete} (can only verify properties expressible in LTL/PDDL---cannot reason about common-sense hazards such as ``ceiling fans are dangerous for drones'' or ``quadrupeds cannot climb ladders'').
 
 \textbf{LLM Safety Channel} $V_L$: Uses structured Chain-of-Thought prompting with four sub-reasoners: invariant checker, conflict detector, common-sense hazard analyzer, and physical feasibility validator. This channel is \emph{broadly complete} (can reason about any hazard category, including those not formalizable in LTL) but \emph{unsound} (LLM safety verdicts are probabilistic and may hallucinate false positives or miss genuine hazards).
 
@@ -282,7 +291,7 @@ The formal logic channel verifies the candidate plan against explicitly specifie
 $$\varphi_{\text{spatial}} = \mathbf{G}\big(\neg(\text{loc}_{\text{drone}} = \text{corridor} \,\wedge\, \text{loc}_{\text{go2}} = \text{corridor})\big)$$
 Temporal ordering constraints (e.g., ``the Go2 must not enter the building until the drone has confirmed roof stability'') are encoded as:
 $$\varphi_{\text{temporal}} = \neg\,\text{enter\_building} \;\mathbf{U}\; \text{roof\_cleared}$$
-We use the Spot library~\cite{ref_spot} for LTL model checking against the plan's state sequence.
+We use the Spot library~\cite{2016_Spot20_duret-lutz} for LTL model checking against the plan's state sequence.
 
 \textbf{PDDL Precondition Validation.} The PDDL domain encodes robot capabilities and action preconditions. The plan is validated by checking that every action's preconditions are satisfied in the state produced by preceding actions. Resource mutex constraints (e.g., exclusive access to a charging station) are encoded as PDDL mutex groups and verified using the unified-planning library.
 
@@ -383,6 +392,7 @@ We construct a benchmark of 102 labeled scenarios for a UAV--UGV building inspec
 \caption{SAFEMRS-102 Benchmark: scenario distribution across 7 hazard categories.}
 \label{tab:benchmark}
 \small
+\resizebox{0.49\textwidth}{!}{%
 \begin{tabular}{lcccp{2.8cm}}
 \toprule
 \textbf{Category} & \textbf{Unsafe} & \textbf{Safe} & \textbf{Total} & \textbf{Example Hazard} \\
@@ -397,7 +407,7 @@ Temporal ordering   &  8 & 6 & 14 & Go2 enters building before drone confirms sa
 \midrule
 \textbf{Total}      & \textbf{53} & \textbf{49} & \textbf{102} & \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 Plans are generated using a structured prompting pipeline that injects specific hazard patterns for each category. Ground-truth labels are assigned by the authors following hazard taxonomy definitions, with each scenario's label independently verifiable from the plan's action sequence and timing constraints.
@@ -407,10 +417,10 @@ Plans are generated using a structured prompting pipeline that injects specific 
 
 We compare SAFEMRS against four baselines:
 \begin{itemize}
-    \item \textbf{No Verification} (COHERENT-style~\cite{ref_coherent}): Plans executed without safety checking.
-    \item \textbf{Formal-Only} (VerifyLLM-style~\cite{ref_verifyllm}): LTL + PDDL verification only.
-    \item \textbf{LLM-Only} (SafePlan-style~\cite{ref_safeplan}): CoT safety reasoning only.
-    \item \textbf{PDDL-Only} (LaMMA-P-style~\cite{ref_lamma_p}): PDDL precondition validation only (no LTL or LLM safety).
+    \item \textbf{No Verification} (COHERENT-style~\cite{2025_COHERENTCollaboration_liu}): Plans executed without safety checking.
+    \item \textbf{Formal-Only} (VerifyLLM-style~\cite{2025_VerifyLLMLLMBased_grigorev}): LTL + PDDL verification only.
+    \item \textbf{LLM-Only} (SafePlan-style~\cite{2025_SafePlanLeveraging_obi}): CoT safety reasoning only.
+    \item \textbf{PDDL-Only} (LaMMA-P-style~\cite{2025_LaMMAPGeneralizable_zhang}): PDDL precondition validation only (no LTL or LLM safety).
 \end{itemize}
 
 % --- 5.3 Metrics (≈100 words) ---
@@ -434,6 +444,7 @@ We evaluate using the following metrics:
 \caption{Main results on SAFEMRS-102 benchmark (Qwen3:8b backbone). HDR~= hazard detection rate on unsafe plans; FPR~= hard false positive rate on safe plans; Cov~= categories with HDR~$>80\%$ out of 7; $^\dagger$Review rate~= fraction of all scenarios escalated to human review (dual channel only); Lat.~= avg.\ verification latency.}
 \label{tab:main_results}
 \small
+\resizebox{0.49\textwidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 \textbf{System} & \textbf{HDR}$\uparrow$ & \textbf{FPR}$\downarrow$ & \textbf{Cov}$\uparrow$ & \textbf{Rev.$^\dagger$}$\downarrow$ & \textbf{Lat.} \\
@@ -444,7 +455,7 @@ LLM-Only (Qwen3:8b)& 83.0\% &  4.1\% & 4/7 & ---   & 69.3s \\
 \midrule
 \textbf{SAFEMRS (Dual)} & \textbf{64.2\%} & \textbf{0.0\%} & 3/7 & 23.5\%$^\dagger$ & 69.3s \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 Table~\ref{tab:main_results} presents the main results. The formal channel achieves 77.4\% HDR at zero latency; the LLM channel (Qwen3:8b) improves HDR to 83.0\% and reduces FPR to 4.1\% by catching commonsense and physical hazards invisible to formal logic. The dual-channel corroborative fusion achieves \textbf{0.0\% hard FPR}---the most safety-critical property---by routing all channel-disagreements to human review rather than making autonomous hard rejections. This comes at a cost: the 23.5\% review rate means a human operator is required for roughly one-quarter of plans, and the hard-rejection HDR is 64.2\%. The full \emph{effective} coverage of unsafe plans (hard reject + escalated review) is 87.7\%.
@@ -454,6 +465,7 @@ Table~\ref{tab:main_results} presents the main results. The formal channel achie
 \caption{Per-category HDR on SAFEMRS-102 (Qwen3:8b backbone). Dual HDR reflects hard rejections only; Review-escalated cases are not counted. Bold marks categories where dual hard-rejection exceeds formal-only.}
 \label{tab:per_category}
 \small
+\resizebox{0.49\textwidth}{!}{%
 \begin{tabular}{lccc}
 \toprule
 \textbf{Category} & \textbf{Formal-Only} & \textbf{LLM-Only} & \textbf{SAFEMRS (Dual)} \\
@@ -468,7 +480,7 @@ Commonsense          &   0\%  &  71.4\% &   0\%$^\dagger$ \\
 \midrule
 \textbf{Overall}     &  77.4\% &  83.0\% &  64.2\% \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 Table~\ref{tab:per_category} reveals the \emph{complementary failure pattern} at the category level. The formal channel achieves 100\% HDR on all four structurally-expressible categories (spatial, resource, temporal, ordering) but 0\% on commonsense---hazards requiring world knowledge beyond LTL/PDDL. The LLM channel inverts this: 71.4\% on commonsense and 100\% on physical and battery, but only 43--63\% on temporal and ordering categories where precise constraint intervals matter. Crucially, the dual channel's hard-rejection HDR equals the \emph{minimum} of both channels per category, because the corroborative fusion requires both channels to agree before issuing a hard rejection ($^\dagger$commonsense=0\% because formal always returns Safe on these, sending all LLM detections to Review). Each LLM-identified commonsense hazard that formal disagrees with is escalated for human review rather than silently dropped or hard-rejected.
@@ -481,6 +493,7 @@ Table~\ref{tab:per_category} reveals the \emph{complementary failure pattern} at
 \caption{LLM backbone comparison: Qwen3:8b (local, Ollama) vs.\ GPT-4o (cloud). Dual-channel HDR and FPR measure the full SAFEMRS pipeline.}
 \label{tab:llm_comparison}
 \small
+\resizebox{0.49\textwidth}{!}{%
 \begin{tabular}{lcccc}
 \toprule
 \textbf{Backbone} & \textbf{HDR (LLM-ch)} & \textbf{HDR (Dual)} & \textbf{FPR (Dual)} & \textbf{Lat.} \\
@@ -488,7 +501,7 @@ Table~\ref{tab:per_category} reveals the \emph{complementary failure pattern} at
 Qwen3:8b (local)  & 83.0\% & 64.2\% & 0.0\% & 69.3s \\
 GPT-4o (cloud)    & 98.1\% & 75.5\% & 2.0\% & 5.2s \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 To demonstrate that SAFEMRS's contributions are architecture-level rather than model-dependent, we evaluate with two LLM backbones: GPT-4o (cloud) and Qwen3:8b (local, via Ollama). The Qwen3:8b backbone runs entirely on local hardware with no API dependency, confirming that the dual-channel safety framework is deployable in offline robotic environments. Table~\ref{tab:llm_comparison} shows results for both backbones. GPT-4o achieves significantly higher LLM-channel HDR (98.1\% vs.\ 83.0\%) and full 7/7 category coverage, at the cost of higher FPR (10.2\%) from more aggressive hazard flagging. The dual channel's corroborative fusion reduces this to 2.0\% hard FPR with 96.1\% effective unsafe coverage and a 20.6\% review rate---confirming that the architecture-level complementarity holds regardless of LLM backbone quality, and that the formal channel's structural coverage is backbone-independent.
@@ -540,77 +553,8 @@ This work was supported by Prince Sultan University, Riyadh, Saudi Arabia. The a
 % REFERENCES
 % =============================================================================
 \balance
+
 \bibliographystyle{IEEEtran}
-% \bibliography{references}
-
-% --- Placeholder references (to be replaced with .bib file) ---
-\begin{thebibliography}{30}
-
-\bibitem{ref_mrs_survey}
-Y.~Rizk, M.~Awad, and E.~Tunstel,
-``Cooperative heterogeneous multi-robot systems: A survey,''
-\emph{ACM Computing Surveys}, vol.~52, no.~2, pp.~1--31, 2019.
-
-\bibitem{ref_smart_llm}
-S.~Kannan, V.~Venkatesh, and W.~Zhang,
-``SMART-LLM: Smart multi-agent robot task planning using large language models,''
-in \emph{Proc. IEEE/RSJ IROS}, 2024.
-
-\bibitem{ref_coherent}
-A.~Kannan and M.~Likhachev,
-``COHERENT: Collaboration of heterogeneous multi-robot systems with LLM-based negotiation,''
-in \emph{Proc. IEEE ICRA}, 2024.
-
-\bibitem{ref_dart_llm}
-Y.~Ma, S.~Liang, and H.~Wang,
-``DART-LLM: Dependency-aware multi-robot task decomposition and execution using large language models,''
-in \emph{Proc. IEEE/RSJ IROS}, 2024.
-
-\bibitem{ref_safeplan}
-I.~Obi, V.~L.~N.~Venkatesh, W.~Wang, R.~Wang, D.~Suh, T.~I.~Amosa, W.~Jo, and B.-C.~Min,
-``SafePlan: Leveraging formal logic and chain-of-thought reasoning for enhanced safety in LLM-based robotic task planning,''
-\emph{arXiv preprint arXiv:2503.06892}, 2025.
-
-\bibitem{ref_verifyllm}
-D.~S.~Grigorev, A.~K.~Kovalev, and A.~I.~Panov,
-``VerifyLLM: LLM-based pre-execution task plan verification for robots,''
-\emph{arXiv preprint arXiv:2507.05118}, 2025.
-
-\bibitem{ref_ltlcodegen}
-R.~Pan, T.~Silver, and L.~Kaelbling,
-``LTLCodeGen: Syntax-guaranteed LTL formula generation from natural language,''
-in \emph{Proc. RSS}, 2024.
-
-\bibitem{ref_nl2hltl2plan}
-D.~Yang, Y.~Chen, and S.~Srivastava,
-``NL2HLTL2PLAN: Natural language to hierarchical LTL specification for task planning,''
-in \emph{Proc. ICRA}, 2024.
-
-\bibitem{ref_safer}
-K.~Garg, D.~Panagou, and R.~Tedrake,
-``SAFER: Control barrier function-based safety enforcement for multi-robot systems,''
-in \emph{Proc. IEEE CDC}, 2024.
-
-\bibitem{ref_satlas}
-A.~Luo, S.~Dean, and N.~Matni,
-``S-ATLAS: Conformal prediction safety bounds for multi-agent systems,''
-in \emph{Proc. CoRL}, 2024.
-
-\bibitem{ref_lamma_p}
-T.~Agia, T.~Migimatsu, and J.~Bohg,
-``LaMMA-P: LLM and Monte Carlo tree search for grounded multi-robot planning,''
-in \emph{Proc. IEEE/RSJ IROS}, 2024.
-
-\bibitem{ref_roco}
-Z.~Mandi, S.~Jain, and S.~Song,
-``RoCo: Dialectic multi-robot collaboration with large language models,''
-in \emph{Proc. IEEE ICRA}, 2024, pp.~286--299.
-
-\bibitem{ref_spot}
-A.~Duret-Lutz, A.~Lewkowicz, A.~Faez~Mouret, E.~Renault, and L.~Xu,
-``Spot 2.0 --- A framework for LTL and $\omega$-automata manipulation,''
-in \emph{Proc. ATVA}, 2016.
-
-\end{thebibliography}
+\bibliography{references.bib}
 
 \end{document}
