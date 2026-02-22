@@ -154,7 +154,7 @@ PYTHONPATH=. python3 experiments/run_all.py \
   - Roof access area (drone inspection zone)
   - Ground floor (Go2 patrol zone)
 - Outdoor area for drone approach/departure
-- World file: `safemrs_sim/safemrs_bringup/worlds/sar_inspection.sdf`
+- World file: `neuros-demos/sar/worlds/sar_inspection.sdf` ✅ Created
 
 **Reference worlds to adapt:**
 - PX4 `warehouse.sdf` (has indoor structure)
@@ -163,8 +163,8 @@ PYTHONPATH=. python3 experiments/run_all.py \
 **Launch integration:**
 ```bash
 # Launch with inspection world
-ros2 launch sar_system sar_system.launch.py \
-  world:=/path/to/sar_inspection.sdf
+ros2 launch neuros_demos sar_system.launch.py \
+  world:=sar_inspection.sdf
 ```
 
 ---
@@ -176,8 +176,9 @@ ros2 launch sar_system sar_system.launch.py \
 **Why:** Section IV of the paper describes the ROS 2 integration but does not include empirical data from a live simulation run. The safety gate must be demonstrated to work in the real simulation.
 
 **Verification checklist:**
-- [ ] `ros2 launch sar_system sar_system.launch.py` — both robots spawn correctly
-- [ ] `ros2 run ros2_agent ros2_agent_node --ros-args -p llm_model:=qwen3:8b -p safety_mode:=dual` — SAFEMRS gate initializes
+- [ ] `ros2 launch neuros_demos sar_system.launch.py` — both robots spawn correctly
+- [ ] `ros2 launch neuros_demos sar_system.launch.py world:=sar_inspection.sdf` — inspection world variant
+- [ ] `ros2 run neuros_agent neuros_agent_node --ros-args -p llm_model:=qwen3:8b -p safety_mode:=dual` — SAFEMRS gate initializes
 - [ ] Safe command approved: `"Drone takeoff to 5 meters"` → Approve + drone lifts off
 - [ ] Unsafe command blocked: `"Move drone to position 0 -2 1"` → Review/Reject (spatial conflict with Go2)
 - [ ] Passthrough mode: same unsafe command executes without blocking
