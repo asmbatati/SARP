@@ -1,15 +1,24 @@
-[submodule "ros2_agent_sim_docker"]
-	path = ros2_agent_sim_docker
-	url = https://github.com/asmbatati/ros2_agent_sim_docker.git
-[submodule "ros2_agent_sim"]
-	path = ros2_agent_sim
-	url = https://github.com/asmbatati/ros2_agent_sim.git
-[submodule "safemrs"]
-	path = safemrs
-	url = https://github.com/neuros-x/safemrs.git
-[submodule "safemrs_docker"]
-	path = safemrs_docker
-	url = https://github.com/neuros-x/safemrs_docker.git
-[submodule "safemrs_sim"]
-	path = safemrs_sim
-	url = https://github.com/neuros-x/safemrs_sim.git
+[submodule "neuros-safemrs"]
+	path = neuros-safemrs
+	url = https://github.com/neuros-x/neuros-safemrs.git
+[submodule "neuros-docker"]
+	path = neuros-docker
+	url = https://github.com/neuros-x/neuros-docker.git
+[submodule "neuros-sim"]
+	path = neuros-sim
+	url = https://github.com/neuros-x/neuros-sim.git
+[submodule "neuros-agent"]
+	path = neuros-agent
+	url = https://github.com/neuros-x/neuros-agent.git
+[submodule "neuros-gui"]
+	path = neuros-gui
+	url = https://github.com/neuros-x/neuros-gui.git
+[submodule "neuros-demos"]
+	path = neuros-demos
+	url = https://github.com/neuros-x/neuros-demos.git
+[submodule "neuros-bridge"]
+	path = neuros-bridge
+	url = https://github.com/neuros-x/neuros-bridge.git
+[submodule "neuros-benchmarking"]
+	path = neuros-benchmarking
+	url = https://github.com/neuros-x/neuros-benchmarking.git

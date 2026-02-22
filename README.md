@@ -27,16 +27,15 @@
 SAFEMRS/
 ├── README.md                        # This file
 ├── CHANGELOG.md                     # Development history
-├── safemrs/                         # Core Python package (pip-installable)
+├── NEUROS-X.md                      # NEUROS-X organization vision & roadmap
+├── remaining_tasks.md               # Author task distribution (IROS 2026)
+├── neuros-safemrs/                  # Core Python package (submodule → neuros-x/neuros-safemrs)
 │   ├── safemrs/
-│   │   ├── config/                  # PlanFormat, thresholds, domain.yaml
-│   │   ├── plan_representations/    # InternalPlan + JSON/PDDL/BT converters
-│   │   ├── planning/                # Agentic Reasoning Layer (NL → Plan)
 │   │   ├── channel_formal/          # Channel 1: LTL + PDDL + Deontic
 │   │   ├── channel_llm/             # Channel 2: 4 LLM sub-reasoners
 │   │   ├── fusion/                  # Corroborative Fusion mechanism
 │   │   ├── benchmark/               # 102 YAML scenarios + evaluator
-│   │   └── ros2_integration/        # ROS 2 node + plan executor
+│   │   └── ros2_integration/        # ROS 2 node + SafetyGate
 │   ├── experiments/                 # Experiment runners + analysis
 │   ├── tests/                       # 51 unit tests
 │   └── pyproject.toml
@@ -47,10 +46,16 @@ SAFEMRS/
 │   ├── implementation_roadmap.md
 │   ├── iros2026_scope.md
 │   └── literature_summary.md
-├── ros2_agent_sim/                  # ROS 2 simulation (submodule)
-├── safemrs_sim/                     # Gazebo worlds (submodule)
-└── safemrs_docker/                  # Docker infrastructure (submodule)
+├── neuros-sim/                      # Gazebo worlds + multi-robot descriptions (submodule)
+├── neuros-docker/                   # Docker infrastructure (submodule)
+├── neuros-agent/                    # ROS 2 LLM agent node — ROSA + LangChain (submodule)
+├── neuros-gui/                      # React + FastAPI web interface (submodule)
+├── neuros-demos/                    # SAR, inspection, patrol demos (submodule)
+├── neuros-bridge/                   # Middleware HAL + Robot Resumes (submodule)
+└── neuros-benchmarking/             # Evaluation & metrics framework (submodule)
 ```
+
+> **Legacy directories** (`ros2_agent_sim/`, `ros2_agent_sim_docker/`) remain on disk pending migration to `neuros-agent`, `neuros-gui`, and `neuros-demos`.
 
 ---
 
@@ -67,7 +72,7 @@ SAFEMRS/
 
 ```bash
 git clone --recursive https://github.com/asmbatati/SAFEMRS.git
-cd SAFEMRS/safemrs
+cd SAFEMRS/neuros-safemrs
 pip install -e .
 
 # Optional: formal verification backends
@@ -80,13 +85,15 @@ python -c "from safemrs.channel_formal import FormalVerifier; print('OK')"
 ### Run Tests
 
 ```bash
-cd safemrs/
+cd neuros-safemrs/
 PYTHONPATH=. python -m pytest tests/ -v
 ```
 
 ### Run Experiments
 
 ```bash
+cd neuros-safemrs/
+
 # Formal-only channel (no LLM needed, instant)
 PYTHONPATH=. python experiments/run_all.py --modes formal_only
 
@@ -105,14 +112,17 @@ PYTHONPATH=. python experiments/check_progress.py --results-dir results/final
 ### ROS 2 Agent with Safety Gate
 
 ```bash
-# Launch with dual-channel safety verification (default)
-ros2 run ros2_agent ros2_agent_node --ros-args -p safety_mode:=dual
+# Full simulation + agent (see neuros-demos for scenario launch files)
+ros2 launch neuros_demos sar.launch.py
+
+# Launch agent with dual-channel safety (default)
+ros2 launch neuros_agent agent.launch.py llm_model:=qwen3:8b safety_mode:=dual
 
 # Launch with formal-only (no LLM latency)
-ros2 run ros2_agent ros2_agent_node --ros-args -p safety_mode:=formal_only
+ros2 launch neuros_agent agent.launch.py safety_mode:=formal_only
 
-# Launch without safety checks (original behavior)
-ros2 run ros2_agent ros2_agent_node --ros-args -p safety_mode:=passthrough
+# Launch without safety checks
+ros2 launch neuros_agent agent.launch.py safety_mode:=passthrough
 ```
 
 ---
@@ -227,7 +237,9 @@ See [literature_summary.md](proposal/literature_summary.md) for detailed analysi
 - **[Architecture Proposal](proposal/architecture_proposal.md)**: Complete system architecture
 - **[Competitive Analysis](proposal/competitive_analysis.md)**: Gap analysis and contribution strategy
 - **[Literature Summary](proposal/literature_summary.md)**: Thematic analysis of 16 papers (2020-2025)
-- **[safemrs/ README](safemrs/README.md)**: Core package documentation and quick start
+- **[neuros-safemrs/ README](neuros-safemrs/README.md)**: Core package documentation and quick start
+- **[NEUROS-X.md](NEUROS-X.md)**: Organization vision, full repo structure, and research roadmap
+- **[remaining_tasks.md](remaining_tasks.md)**: Author task distribution for IROS 2026 submission
 
 ---
 
@@ -248,7 +260,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **Research Supervisor**: Prof. Anis Koubaa
 - **Repository Owner**: asmbatati
 - **Collaborator**: Anis Koubaa (aniskoubaa)
-- **Project Affiliation**: ScaleX Research Lab
+- **Project Affiliation**: Prince Sultan University Robotics & IoT Lab
+- **Organization**: [NEUROS-X](https://github.com/neuros-x)
 
 ---
 
@@ -262,4 +275,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Last Updated**: February 21, 2026
+**Last Updated**: February 22, 2026
