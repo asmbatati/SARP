@@ -4,6 +4,63 @@
 
 ---
 
+## Session 21 — 2026-02-22 (NEUROS-X Organization Migration)
+
+### 21.1 NEUROS-X Organization Structure & Submodule Migration
+
+**Scope:** Reorganize the entire SAFEMRS repository into the NEUROS-X multi-repo organization structure. Create vision documents, distribute remaining IROS 2026 tasks, rename submodules, add new repos, and migrate legacy code.
+
+#### Documents Created
+
+| File | Description |
+|------|-------------|
+| `NEUROS-X.md` | Organization vision, 5-tier architecture, 10-repo structure, ROS 2 package layout, research roadmap |
+| `remaining_tasks.md` | IROS 2026 author task distribution (19 tasks across 9 authors with deadlines) |
+
+#### Submodule Restructure
+
+| Old Name | New Name | Action |
+|----------|----------|--------|
+| `safemrs/` | `neuros-safemrs/` | Renamed via `git mv` |
+| `safemrs_docker/` | `neuros-docker/` | Renamed via `git mv` |
+| `safemrs_sim/` | `neuros-sim/` | Renamed via `git mv` |
+| `ros2_agent_sim/` | *(removed from git)* | Untracked; code migrated to new repos |
+| `ros2_agent_sim_docker/` | *(removed from git)* | Untracked; code migrated to neuros-docker |
+| — | `neuros-agent/` | **NEW** — cloned from `neuros-x/neuros-agent` |
+| — | `neuros-gui/` | **NEW** — cloned from `neuros-x/neuros-gui` |
+| — | `neuros-demos/` | **NEW** — cloned from `neuros-x/neuros-demos` |
+| — | `neuros-bridge/` | **NEW** — cloned from `neuros-x/neuros-bridge` |
+| — | `neuros-benchmarking/` | **NEW** — cloned from `neuros-x/neuros-benchmarking` |
+
+#### Code Migration from Legacy Repos
+
+| Source (ros2_agent_sim) | Destination | Changes |
+|------------------------|-------------|---------|
+| `ros2_agent/` | `neuros-agent/neuros_agent/` | Renamed pkg `ros2_agent`→`neuros_agent`; renamed class `Ros2AgentNode`→`NeurosAgentNode`; renamed `ros2_agent_node.py`→`agent_node.py`; removed ~250 lines commented-out `drone_status`; added launch file + config YAML; updated `setup.py`, `package.xml`, `setup.cfg` with proper deps |
+| `simulation_gui/` | `neuros-gui/neuros_gui/` | Renamed pkg `simulation_gui`→`neuros_gui`; updated node name, package refs, dev paths |
+| `sar_system/` | `neuros-demos/sar/` | Renamed pkg `sar_system`→`neuros_demos`; updated `CMakeLists.txt` + `package.xml` |
+| `gps_bridge/` | `neuros-demos/shared/gps_bridge/` | Copied as-is |
+| `sim_evaluation/` | `neuros-demos/shared/sim_evaluation/` | Copied as-is |
+
+| Source (ros2_agent_sim_docker) | Destination | Changes |
+|-------------------------------|-------------|---------|
+| `docker/Dockerfile.ros2-agent-sim` | `neuros-docker/docker/Dockerfile.neuros` | Renamed |
+| `docker_run.sh`, `scripts/`, `PX4_config/`, `middleware_profiles/`, `images/` | `neuros-docker/` | Copied |
+
+#### README Updates
+
+All 8 submodule READMEs created/updated with NEUROS-X branding, quick-start guides, structure diagrams, and cross-links. Main `README.md` updated with new submodule paths, install commands pointing to `neuros-safemrs/`, and NEUROS-X organization links.
+
+#### Key Optimizations
+
+- **Dead code removal**: ~250 lines of commented-out `drone_status` function removed from drone_tools.py
+- **Launch file**: Added `neuros-agent/launch/agent.launch.py` with `llm_model`, `safety_mode` launch args
+- **Config YAML**: Added `neuros-agent/config/agent_params.yaml` with all tunable parameters
+- **Package metadata**: All packages updated to v1.0.0 with proper dependencies declared
+- **Import cleanup**: Removed unused `specialist_models` import warning; added explicit import in agent_node.py
+
+---
+
 ## Session 20 — 2026-02-21 (GPT-4o Experiment Complete)
 
 ### 20.1 GPT-4o Comparison Experiment (Table V)
